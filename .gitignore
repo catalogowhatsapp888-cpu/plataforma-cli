@@ -1,0 +1,16 @@
+venv/
+node_modules/
+.next/
+__pycache__/
+.DS_Store
+*.log
+*.sqlite
+*.db
+.env
+V1.2 Estavel/
+backend.log
+frontend.log
+ngrok.log
+clinica.db
+launch.json
+.vscode/
