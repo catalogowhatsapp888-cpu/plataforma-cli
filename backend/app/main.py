@@ -1,4 +1,17 @@
 from fastapi import FastAPI, UploadFile, File
+import subprocess
+import sys
+
+# AUTO-FIX: Ensure python-multipart is installed in hostile environments
+try:
+    import multipart
+except ImportError:
+    print("⚠️ python-multipart missing. Force installing...", file=sys.stderr)
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "python-multipart"])
+        print("✅ python-multipart installed.", file=sys.stderr)
+    except Exception as e:
+        print(f"❌ Failed to install python-multipart: {e}", file=sys.stderr)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
