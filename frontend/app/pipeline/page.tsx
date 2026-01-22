@@ -59,9 +59,12 @@ export default function PipelinePage() {
         };
     }, []);
 
+    // URL Base da API 
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+
     // Fetch Leads
     const fetchLeads = () => {
-        fetch('http://127.0.0.1:8000/api/v1/leads/?limit=2000')
+        fetch(`${API_URL}/api/v1/leads/?limit=2000`)
             .then(res => res.json())
             .then(data => {
                 setLeads(data);
@@ -95,7 +98,7 @@ export default function PipelinePage() {
 
         // Call API
         try {
-            await fetch(`http://127.0.0.1:8000/api/v1/leads/${draggableId}/stage`, {
+            await fetch(`${API_URL}/api/v1/leads/${draggableId}/stage`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ stage: newStage })
@@ -108,7 +111,7 @@ export default function PipelinePage() {
 
     const handleCreateLead = async () => {
         try {
-            const res = await fetch('http://127.0.0.1:8000/api/v1/leads/', {
+            const res = await fetch(`${API_URL}/api/v1/leads/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
@@ -131,7 +134,7 @@ export default function PipelinePage() {
     const handleUpdateLead = async () => {
         if (!selectedLead) return;
         try {
-            const res = await fetch(`http://127.0.0.1:8000/api/v1/leads/${selectedLead.id}`, {
+            const res = await fetch(`${API_URL}/api/v1/leads/${selectedLead.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
@@ -163,7 +166,7 @@ export default function PipelinePage() {
         }
 
         try {
-            await fetch(`http://127.0.0.1:8000/api/v1/leads/${id}/stage`, {
+            await fetch(`${API_URL}/api/v1/leads/${id}/stage`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ temperature: temp })
@@ -179,7 +182,7 @@ export default function PipelinePage() {
         setSending(true);
         try {
             const payload = { message: msg, media_url: url || null };
-            const res = await fetch(`http://127.0.0.1:8000/api/v1/leads/${selectedLead.id}/message`, {
+            const res = await fetch(`${API_URL}/api/v1/leads/${selectedLead.id}/message`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
