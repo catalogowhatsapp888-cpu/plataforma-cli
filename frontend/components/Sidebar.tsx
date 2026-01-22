@@ -72,7 +72,7 @@ export default function Sidebar() {
         <aside className="w-64 bg-neutral-950 border-r border-neutral-800 h-screen flex flex-col fixed left-0 top-0 z-50">
             {/* Área do Logo Editável */}
             <div
-                className="p-6 border-b border-neutral-800 flex items-center gap-2 cursor-pointer group relative hover:bg-neutral-900/50 transition-colors"
+                className="p-6 border-b border-neutral-800 flex flex-col items-center justify-center gap-2 cursor-pointer group relative hover:bg-neutral-900/50 transition-colors"
                 onClick={() => fileInputRef.current?.click()}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
@@ -82,16 +82,16 @@ export default function Sidebar() {
                     type="file"
                     ref={fileInputRef}
                     className="hidden"
-                    accept="image/*"
+                    accept="image/png, image/jpeg, image/svg+xml"
                     onChange={handleLogoUpload}
                 />
 
                 {customLogo ? (
-                    <div className="w-full h-16 flex items-center justify-center overflow-hidden">
+                    <div className="w-full h-[120px] flex items-center justify-center overflow-hidden p-0">
                         <img src={customLogo} alt="Logo Clínica" className="w-full h-full object-contain" />
                     </div>
                 ) : (
-                    <>
+                    <div className="flex items-center gap-2">
                         <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center font-bold text-white shadow-lg shadow-purple-900/20 group-hover:scale-105 transition-transform">
                             PC
                         </div>
@@ -99,12 +99,14 @@ export default function Sidebar() {
                             <h1 className="text-lg font-bold bg-gradient-to-r from-white to-neutral-400 bg-clip-text text-transparent leading-tight">
                                 Clinica AI
                             </h1>
-                            <p className="text-[10px] text-neutral-600 group-hover:text-purple-400 transition-colors flex items-center gap-1">
-                                <Upload size={10} /> Personalizar
-                            </p>
                         </div>
-                    </>
+                    </div>
                 )}
+
+                {/* Dica de Tamanho (visível apenas no hover ou se não tiver logo) */}
+                <p className="text-[10px] text-neutral-600 group-hover:text-purple-400 transition-colors text-center mt-2 opacity-0 group-hover:opacity-100 absolute bottom-1 w-full">
+                    Recomendado: 200x120px PNG Transparente
+                </p>
             </div>
 
             <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
