@@ -1,8 +1,8 @@
 "use client";
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, KanbanSquare, Megaphone, Bot, Calendar, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, KanbanSquare, Megaphone, Bot, Calendar, Settings, LogOut, Upload, Image as ImageIcon } from 'lucide-react';
 
 const menuItems = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -15,22 +15,96 @@ const menuItems = [
 export default function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
+    const [customLogo, setCustomLogo] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Carregar logo do localStorage ao iniciar
+    useEffect(() => {
+        const savedLogo = localStorage.getItem('clinic_logo');
+        if (savedLogo) setCustomLogo(savedLogo);
+    }, []);
 
     const handleLogout = () => {
-        document.cookie = "auth_token=; path=/; max-age=0";
+        // Para deletar cookie secure, é preciso passar os mesmos atributos (exceto max-age=0)
+        document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax; Secure";
+        // Fallback pra localhost (sem secure)
+        document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
         router.push('/login');
     };
 
-    // Se for login, não renderiza (será controlado pelo layout pai também, mas segurança dupla visual)
+    const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64 = reader.result as string;
+                setCustomLogo(base64);
+                localStorage.setItem('clinic_logo', base64);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const file = e.dataTransfer.files?.[0];
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64 = reader.result as string;
+                setCustomLogo(base64);
+                localStorage.setItem('clinic_logo', base64);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    // Se for login, não renderiza
     if (pathname === '/login') return null;
 
     return (
         <aside className="w-64 bg-neutral-950 border-r border-neutral-800 h-screen flex flex-col fixed left-0 top-0 z-50">
-            <div className="p-6 border-b border-neutral-800 flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center font-bold text-white">PC</div>
-                <h1 className="text-lg font-bold bg-gradient-to-r from-white to-neutral-400 bg-clip-text text-transparent">
-                    Clinica AI
-                </h1>
+            {/* Área do Logo Editável */}
+            <div
+                className="p-6 border-b border-neutral-800 flex items-center gap-2 cursor-pointer group relative hover:bg-neutral-900/50 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                title="Clique ou arraste uma imagem para alterar o logo"
+            >
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                />
+
+                {customLogo ? (
+                    <div className="w-full h-16 flex items-center justify-center overflow-hidden">
+                        <img src={customLogo} alt="Logo Clínica" className="w-full h-full object-contain" />
+                    </div>
+                ) : (
+                    <>
+                        <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center font-bold text-white shadow-lg shadow-purple-900/20 group-hover:scale-105 transition-transform">
+                            PC
+                        </div>
+                        <div>
+                            <h1 className="text-lg font-bold bg-gradient-to-r from-white to-neutral-400 bg-clip-text text-transparent leading-tight">
+                                Clinica AI
+                            </h1>
+                            <p className="text-[10px] text-neutral-600 group-hover:text-purple-400 transition-colors flex items-center gap-1">
+                                <Upload size={10} /> Personalizar
+                            </p>
+                        </div>
+                    </>
+                )}
             </div>
 
             <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
@@ -67,7 +141,10 @@ export default function Sidebar() {
                     <Settings size={20} />
                     <span className="font-medium text-sm">Configurações</span>
                 </Link>
-                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-900/10 hover:text-red-300 transition-colors border border-transparent hover:border-red-900/30">
+                <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-900/10 hover:text-red-300 transition-colors border border-transparent hover:border-red-900/30"
+                >
                     <LogOut size={20} />
                     <span className="font-medium text-sm">Sair</span>
                 </button>
