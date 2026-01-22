@@ -139,3 +139,14 @@ class AIConfig(Base):
     model_name = Column(String, default="gpt-4o")
     whitelist_numbers = Column(JSON, default=[]) # Lista de números para teste (responde sempre)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    hashed_password = Column(String(255), nullable=False)
+    role = Column(String(20), default='user') # 'admin', 'user'
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

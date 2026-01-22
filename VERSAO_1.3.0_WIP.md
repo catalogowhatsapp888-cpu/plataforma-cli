@@ -6,10 +6,10 @@ Baseada na Stable V1.2
 Consolidar a plataforma como uma ferramenta robusta e *personalizável* (White Label), permitindo que cada cliente ajuste a identidade visual, além de melhorias na IA.
 
 ## 📋 RoadMap Prioritário
-### 1. Customização Estética & White Label 🎨 (EM ANDAMENTO)
-- [ ] **Login:** Alterar placeholder para genérico ("seu email").
-- [ ] **Título da Aba:** Alterar Metadata para "Superserver".
-- [ ] **Logo Dinâmico:** Sidebar com área de upload de imagem (Drag & Drop) para o logo da clínica.
+### 1. Customização Estética & White Label 🎨 (CONCLUÍDO)
+- [x] **Login:** Alterar placeholder para genérico ("seu email").
+- [x] **Título da Aba:** Alterar Metadata para "Superserver".
+- [x] **Logo Dinâmico:** Sidebar com área de upload de imagem (Drag & Drop) para o logo da clínica.
 
 ### 2. Inteligência Artificial Avançada 🧠
 - [ ] **Integração com Agenda/Calendário:** Permitir que a IA verifique horários livres (mock ou real).
