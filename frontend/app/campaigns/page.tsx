@@ -21,8 +21,10 @@ export default function CampaignsPage() {
     const [loading, setLoading] = useState(true);
     const [executingId, setExecutingId] = useState<string | null>(null);
 
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
     useEffect(() => {
-        fetch('/api/v1/campaigns/') // Changed to relative path for proxy
+        fetch(`${API_URL}/api/v1/campaigns/`)
             .then(res => res.json())
             .then(data => {
                 setCampaigns(data);
@@ -37,7 +39,7 @@ export default function CampaignsPage() {
     const handleDelete = async (id: string, name: string) => {
         if (!confirm(`Tem certeza que deseja apagar a campanha "${name}"?`)) return;
         try {
-            const res = await fetch(`/api/v1/campaigns/${id}`, { method: 'DELETE' });
+            const res = await fetch(`${API_URL}/api/v1/campaigns/${id}`, { method: 'DELETE' });
             if (res.ok) {
                 setCampaigns(prev => prev.filter(c => c.id !== id));
             } else {
@@ -55,7 +57,7 @@ export default function CampaignsPage() {
 
         setExecutingId(id);
         try {
-            const res = await fetch(`/api/v1/campaigns/${id}/execute?force=${force}`, { method: 'POST' });
+            const res = await fetch(`${API_URL}/api/v1/campaigns/${id}/execute?force=${force}`, { method: 'POST' });
             const data = await res.json();
 
             if (res.ok) {
