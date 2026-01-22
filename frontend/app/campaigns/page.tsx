@@ -9,6 +9,7 @@ interface Campaign {
     name: string;
     status: 'draft' | 'active' | 'completed' | 'scheduled';
     created_at: string;
+    media_url?: string;
     audience_rules: {
         logic: string;
         conditions: Array<{ field: string; operator: string; value: string }>;
@@ -21,7 +22,7 @@ export default function CampaignsPage() {
     const [executingId, setExecutingId] = useState<string | null>(null);
 
     useEffect(() => {
-        fetch('http://localhost:8000/api/v1/campaigns/')
+        fetch('/api/v1/campaigns/') // Changed to relative path for proxy
             .then(res => res.json())
             .then(data => {
                 setCampaigns(data);
@@ -36,7 +37,7 @@ export default function CampaignsPage() {
     const handleDelete = async (id: string, name: string) => {
         if (!confirm(`Tem certeza que deseja apagar a campanha "${name}"?`)) return;
         try {
-            const res = await fetch(`http://localhost:8000/api/v1/campaigns/${id}`, { method: 'DELETE' });
+            const res = await fetch(`/api/v1/campaigns/${id}`, { method: 'DELETE' });
             if (res.ok) {
                 setCampaigns(prev => prev.filter(c => c.id !== id));
             } else {
@@ -54,7 +55,7 @@ export default function CampaignsPage() {
 
         setExecutingId(id);
         try {
-            const res = await fetch(`http://localhost:8000/api/v1/campaigns/${id}/execute?force=${force}`, { method: 'POST' });
+            const res = await fetch(`/api/v1/campaigns/${id}/execute?force=${force}`, { method: 'POST' });
             const data = await res.json();
 
             if (res.ok) {
@@ -139,60 +140,76 @@ export default function CampaignsPage() {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {campaigns.map(campaign => (
-                            <div key={campaign.id} className="bg-neutral-900 border border-neutral-800 rounded-xl p-5 hover:border-neutral-700 transition-all group overflow-hidden relative">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className={`text-[10px] font-bold px-2 py-1 rounded border uppercase tracking-wider ${getStatusColor(campaign.status)}`}>
-                                        {getStatusLabel(campaign.status)}
+                            <div key={campaign.id} className="bg-neutral-900 border border-neutral-800 rounded-2xl hover:border-neutral-700 transition-all group overflow-hidden relative shadow-lg flex flex-col">
+                                {/* Image Preview */}
+                                {campaign.media_url ? (
+                                    <div className="w-full h-48 bg-neutral-950 relative overflow-hidden group-hover:opacity-90 transition-opacity">
+                                        <img src={campaign.media_url} alt={campaign.name} className="w-full h-full object-cover" />
+                                        <div className="absolute top-3 left-3">
+                                            <div className={`text-[10px] font-bold px-2 py-1 rounded border uppercase tracking-wider backdrop-blur-sm shadow-sm ${getStatusColor(campaign.status)}`}>
+                                                {getStatusLabel(campaign.status)}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="text-neutral-600 group-hover:text-neutral-400 transition-colors">
-                                        <Clock size={16} />
+                                ) : (
+                                    <div className="w-full h-24 bg-gradient-to-br from-neutral-800 to-neutral-900 relative">
+                                        <div className="absolute top-4 left-4">
+                                            <div className={`text-[10px] font-bold px-2 py-1 rounded border uppercase tracking-wider ${getStatusColor(campaign.status)}`}>
+                                                {getStatusLabel(campaign.status)}
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
 
-                                <h3 className="text-lg font-bold text-white mb-1 line-clamp-1" title={campaign.name}>
-                                    {campaign.name}
-                                </h3>
+                                <div className="p-6 flex-1 flex flex-col">
+                                    <h3 className="text-xl font-bold text-white mb-2 line-clamp-2 leading-tight" title={campaign.name}>
+                                        {campaign.name}
+                                    </h3>
 
-                                <div className="text-xs text-neutral-500 mb-4 h-12 overflow-hidden">
-                                    {campaign.audience_rules?.conditions?.length || 0} Regras de Segmentação
-                                    <div className="flex gap-1 mt-1 flex-wrap">
-                                        {campaign.audience_rules?.conditions?.slice(0, 2).map((rule, idx) => (
-                                            <span key={idx} className="bg-neutral-800 text-neutral-400 px-1.5 py-0.5 rounded border border-neutral-700">
-                                                {rule.field === 'temperature' ? '🌡️' : '⚙️'} {rule.value}
-                                            </span>
-                                        ))}
-                                        {(campaign.audience_rules?.conditions?.length || 0) > 2 && (
-                                            <span className="text-neutral-600 text-[10px] py-0.5">+ mais</span>
-                                        )}
+                                    <div className="flex-1">
+                                        <div className="text-sm text-neutral-400 mb-2 font-medium">
+                                            {campaign.audience_rules?.conditions?.length || 0} Regras de Segmentação
+                                        </div>
+                                        <div className="flex gap-1.5 flex-wrap mb-4">
+                                            {campaign.audience_rules?.conditions?.slice(0, 3).map((rule, idx) => (
+                                                <span key={idx} className="bg-neutral-800 text-neutral-300 px-2 py-1 rounded text-xs border border-neutral-700">
+                                                    {rule.field === 'temperature' ? '🌡️' : '⚙️'} {rule.value}
+                                                </span>
+                                            ))}
+                                            {(campaign.audience_rules?.conditions?.length || 0) > 3 && (
+                                                <span className="text-neutral-500 text-xs py-1">+ mais</span>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div className="flex items-center justify-between pt-4 border-t border-neutral-800">
-                                    <span className="text-[10px] text-neutral-600">
-                                        Criado em {new Date(campaign.created_at).toLocaleDateString()}
-                                    </span>
-                                    <div className="flex gap-2">
-                                        <Link href={`/campaigns/${campaign.id}`}>
-                                            <button className="w-8 h-8 rounded-lg text-neutral-600 hover:bg-neutral-800 hover:text-white flex items-center justify-center transition-all" title="Editar">
-                                                <Edit3 size={16} />
+                                    <div className="flex items-center justify-between pt-4 border-t border-neutral-800 mt-auto">
+                                        <span className="text-xs text-neutral-500 group-hover:text-neutral-400 transition-colors flex items-center gap-1">
+                                            <Clock size={12} />
+                                            {new Date(campaign.created_at).toLocaleDateString()}
+                                        </span>
+                                        <div className="flex gap-2">
+                                            <Link href={`/campaigns/${campaign.id}`}>
+                                                <button className="w-9 h-9 rounded-lg text-neutral-400 hover:bg-neutral-800 hover:text-white flex items-center justify-center transition-all bg-neutral-800/50" title="Editar">
+                                                    <Edit3 size={16} />
+                                                </button>
+                                            </Link>
+                                            <button
+                                                onClick={() => handleDelete(campaign.id, campaign.name)}
+                                                className="w-9 h-9 rounded-lg text-neutral-400 hover:bg-red-900/20 hover:text-red-500 flex items-center justify-center transition-all bg-neutral-800/50"
+                                                title="Apagar Campanha"
+                                            >
+                                                <Trash2 size={16} />
                                             </button>
-                                        </Link>
-                                        <button
-                                            onClick={() => handleDelete(campaign.id, campaign.name)}
-                                            className="w-8 h-8 rounded-lg text-neutral-600 hover:bg-red-900/20 hover:text-red-500 flex items-center justify-center transition-all"
-                                            title="Apagar Campanha"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
 
-                                        <button
-                                            onClick={() => handleExecute(campaign.id, campaign.name)}
-                                            disabled={executingId === campaign.id || campaign.status === 'completed'}
-                                            className="w-10 h-10 rounded-full bg-purple-600/10 text-purple-400 hover:bg-purple-600 hover:text-white flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed group-hover:scale-110 ml-2 shadow-lg shadow-purple-900/20"
-                                            title="Disparar Campanha"
-                                        >
-                                            {executingId === campaign.id ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} fill="currentColor" />}
-                                        </button>
+                                            <button
+                                                onClick={() => handleExecute(campaign.id, campaign.name)}
+                                                disabled={executingId === campaign.id || campaign.status === 'completed'}
+                                                className="w-12 h-12 -mt-1 -mb-1 rounded-full bg-purple-600 text-white hover:bg-purple-500 flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 shadow-purple-900/30 shadow-lg ml-2"
+                                                title="Disparar Campanha"
+                                            >
+                                                {executingId === campaign.id ? <Loader2 size={20} className="animate-spin" /> : <Play size={20} fill="currentColor" />}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
