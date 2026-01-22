@@ -12,7 +12,8 @@ export default function LoginPage() {
         e.preventDefault();
         if (email === 'eduschefer@icloud.com' && password === '123456') {
             // Set cookie simples
-            document.cookie = "auth_token=admin_session; path=/; max-age=86400; SameSite=Lax";
+            // Set cookie seguro (compatível com HTTPS)
+            document.cookie = "auth_token=admin_session; path=/; max-age=86400; SameSite=Lax; Secure";
             router.push('/');
         } else {
             alert("Credenciais inválidas");
