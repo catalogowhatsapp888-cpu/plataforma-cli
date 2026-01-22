@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: Optional[str] = None
     AI_MODEL: str = "gpt-4o"
 
+    # Security (JWT)
+    SECRET_KEY: str = "sua_chave_secreta_super_segura_troque_isso_em_producao"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 # 24 horas
+
     class Config:
         env_file = ".env"
         case_sensitive = True

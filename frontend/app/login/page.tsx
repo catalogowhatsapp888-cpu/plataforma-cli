@@ -6,17 +6,34 @@ import { Lock } from 'lucide-react';
 export default function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
     const router = useRouter();
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (email === 'eduschefer@icloud.com' && password === '123456') {
-            // Set cookie simples
-            // Set cookie seguro (compatível com HTTPS)
-            document.cookie = "auth_token=admin_session; path=/; max-age=86400; SameSite=Lax; Secure";
-            router.push('/');
-        } else {
-            alert("Credenciais inválidas");
+        setLoading(true);
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+        try {
+            const res = await fetch(`${API_URL}/api/v1/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                // Set cookie real com JWT
+                document.cookie = `auth_token=${data.access_token}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax; Secure`;
+                router.push('/');
+            } else {
+                alert(data.detail || "Erro ao fazer login");
+            }
+        } catch (error) {
+            alert("Erro de conexão com o servidor");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -52,8 +69,8 @@ export default function LoginPage() {
                             placeholder="••••••"
                         />
                     </div>
-                    <button className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg transition mt-4 hover:shadow-lg hover:shadow-purple-900/30 active:scale-[0.98]">
-                        Entrar no Sistema
+                    <button disabled={loading} className="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold py-3 rounded-lg transition mt-4 hover:shadow-lg hover:shadow-purple-900/30 active:scale-[0.98]">
+                        {loading ? "Entrando..." : "Entrar no Sistema"}
                     </button>
                 </form>
             </div>
