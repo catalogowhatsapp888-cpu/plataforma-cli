@@ -10,6 +10,7 @@ interface Campaign {
     status: 'draft' | 'active' | 'completed' | 'scheduled';
     created_at: string;
     media_url?: string;
+    message_template?: string;
     audience_rules: {
         logic: string;
         conditions: Array<{ field: string; operator: string; value: string }>;
@@ -169,18 +170,14 @@ export default function CampaignsPage() {
                                     </h3>
 
                                     <div className="flex-1">
-                                        <div className="text-sm text-neutral-400 mb-2 font-medium">
-                                            {campaign.audience_rules?.conditions?.length || 0} Regras de Segmentação
+                                        {/* Preview da Mensagem */}
+                                        <div className="text-xs text-neutral-500 mb-1 font-medium uppercase tracking-wider">
+                                            Mensagem
                                         </div>
-                                        <div className="flex gap-1.5 flex-wrap mb-4">
-                                            {campaign.audience_rules?.conditions?.slice(0, 3).map((rule, idx) => (
-                                                <span key={idx} className="bg-neutral-800 text-neutral-300 px-2 py-1 rounded text-xs border border-neutral-700">
-                                                    {rule.field === 'temperature' ? '🌡️' : '⚙️'} {rule.value}
-                                                </span>
-                                            ))}
-                                            {(campaign.audience_rules?.conditions?.length || 0) > 3 && (
-                                                <span className="text-neutral-500 text-xs py-1">+ mais</span>
-                                            )}
+                                        <div className="bg-neutral-800/50 p-3 rounded-lg border border-neutral-800 mb-4 h-16 overflow-hidden">
+                                            <p className="text-sm text-neutral-300 line-clamp-2 leading-relaxed font-mono opacity-80">
+                                                {campaign.message_template || "Sem mensagem configurada..."}
+                                            </p>
                                         </div>
                                     </div>
 
