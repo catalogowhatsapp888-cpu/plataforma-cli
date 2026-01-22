@@ -62,8 +62,14 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Configuração de CORS
-origins = ["*"]
+# Configuração de CORS - Evitar Wildcard com Credentials
+origins = [
+    "http://localhost:3000",
+    "http://localhost:8000",
+    "https://clinica.superserver.com.br",
+    "https://agenciaia-plataforma-clinica-frontend.easypanel.host" # URL original do easypanel tb
+]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
