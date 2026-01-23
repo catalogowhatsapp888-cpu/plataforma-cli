@@ -50,9 +50,9 @@ export default function AIConfigPage() {
     if (loading) return <div className="h-screen bg-[#0A0A0A] flex items-center justify-center text-white">Carregando Cérebro...</div>;
 
     return (
-        <div className="flex flex-col h-screen bg-[#0A0A0A] text-neutral-200">
-            {/* Header */}
-            <header className="h-16 border-b border-neutral-800 flex items-center justify-between px-6 bg-[#0A0A0A]">
+        <div className="min-h-screen bg-neutral-900 text-white p-6 font-sans overflow-hidden flex flex-col">
+            {/* Header Padrão */}
+            <header className="flex items-center justify-between mb-8 pb-4 border-b border-neutral-800 gap-4">
                 <div className="flex items-center gap-4">
                     <Link href="/" className="p-2 hover:bg-neutral-800 rounded-lg transition-colors text-neutral-500 hover:text-white">
                         <ArrowLeft size={20} />
@@ -69,7 +69,7 @@ export default function AIConfigPage() {
                 <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-green-500 transition-colors flex items-center gap-2 disabled:opacity-50"
+                    className="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 shadow-lg shadow-green-900/20"
                 >
                     {saving ? <div className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" /> : <Save size={16} />}
                     Salvar Configuração

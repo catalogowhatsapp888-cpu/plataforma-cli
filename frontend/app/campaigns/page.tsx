@@ -96,21 +96,24 @@ export default function CampaignsPage() {
     };
 
     return (
-        <div className="flex flex-col h-screen bg-[#0A0A0A] text-neutral-200 overflow-hidden">
-            {/* Header */}
-            <header className="h-16 border-b border-neutral-800 flex items-center justify-between px-6 bg-[#0A0A0A]/80 backdrop-blur-md z-10">
-                <div className="flex items-center gap-3">
-                    <Link href="/pipeline" className="p-2 hover:bg-neutral-800 rounded-lg transition-colors text-neutral-400 hover:text-white" title="Voltar ao Pipeline">
+        <div className="min-h-screen bg-neutral-900 text-white p-6 font-sans overflow-hidden flex flex-col">
+            {/* Header Padrão */}
+            <header className="flex items-center justify-between mb-8 pb-4 border-b border-neutral-800 gap-4">
+                <div className="flex items-center gap-4">
+                    <Link href="/" className="p-2 hover:bg-neutral-800 rounded-lg transition-colors text-neutral-500 hover:text-white">
                         <ArrowLeft size={20} />
                     </Link>
-                    <div className="w-8 h-8 bg-purple-600/20 rounded-lg flex items-center justify-center border border-purple-500/30">
-                        <Megaphone size={18} className="text-purple-400" />
+                    <div className="w-10 h-10 bg-purple-900/30 rounded-lg flex items-center justify-center border border-purple-500/30 text-purple-400">
+                        <Megaphone size={22} />
                     </div>
-                    <h1 className="font-semibold text-lg tracking-tight">Campanhas Inteligentes</h1>
+                    <div>
+                        <h1 className="text-xl font-bold text-white leading-tight">Campanhas</h1>
+                        <p className="text-xs text-neutral-500 font-medium">Automação e engajamento</p>
+                    </div>
                 </div>
 
                 <Link href="/campaigns/new">
-                    <button className="bg-white text-black px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-200 transition-colors flex items-center gap-2">
+                    <button className="bg-white text-black px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-200 transition-colors flex items-center gap-2 shadow-lg">
                         <Plus size={16} />
                         Nova Campanha
                     </button>
@@ -118,7 +121,7 @@ export default function CampaignsPage() {
             </header>
 
             {/* Content */}
-            <main className="flex-1 p-8 overflow-y-auto">
+            <main className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-neutral-800">
                 {loading ? (
                     <div className="flex items-center justify-center h-full text-neutral-500 gap-2">
                         <div className="w-4 h-4 border-2 border-neutral-600 border-t-white rounded-full animate-spin"></div>
