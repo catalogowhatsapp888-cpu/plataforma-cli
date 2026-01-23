@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import uuid
@@ -10,8 +10,83 @@ from app.models.models import Contact, LeadPipeline, Conversation, Message
 from app.schemas.lead import ContactSchema
 from app.services.import_service import process_excel_import
 import os
+import pandas as pd
+import io
 
 router = APIRouter()
+
+@router.post("/import_file")
+async def import_leads_file(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    """Recebe um arquivo (CSV/XLSX) e importa leads, ignorando duplicados pelo telefone."""
+    
+    try:
+        contents = await file.read()
+        filename = file.filename.lower()
+        
+        df = None
+        if filename.endswith('.csv'):
+            df = pd.read_csv(io.BytesIO(contents))
+        elif filename.endswith(('.xls', '.xlsx')):
+            df = pd.read_excel(io.BytesIO(contents))
+        else:
+            raise HTTPException(status_code=400, detail="Formato inválido. Use .csv ou .xlsx")
+            
+        if df is None or df.empty:
+            return {"added": 0, "ignored": 0, "errors": [], "total": 0}
+
+        # Normalizar colunas (lower + strip)
+        df.columns = [str(c).lower().strip() for c in df.columns]
+        
+        # Identificar colunas dinamicamente
+        col_name = next((c for c in df.columns if 'nome' in c or 'name' in c), None)
+        col_phone = next((c for c in df.columns if 'tel' in c or 'cel' in c or 'phone' in c or 'what' in c), None)
+        col_email = next((c for c in df.columns if 'email' in c or 'mail' in c), None)
+
+        if not col_phone:
+             return {"added": 0, "ignored": 0, "errors": ["Coluna de Telefone não encontrada (use 'Telefone', 'Celular', 'Whatsapp')"], "total": len(df)}
+
+        stats = {"added": 0, "ignored": 0, "errors": [], "total": len(df)}
+        
+        # Cache de telefones existentes para evitar N queries (opcional, mas melhor performance)
+        # Como o db pode ser grande, melhor fazer exists() por item ou carregar apenas hashset dos phones.
+        # Para simplicidade e segurança (race conditions), faremos verificação row-by-row ou insert ignore.
+        
+        # Vamos row-by-row com clean_phone
+        for idx, row in df.iterrows():
+            try:
+                raw_phone = str(row[col_phone]) if pd.notna(row[col_phone]) else ""
+                if not raw_phone or raw_phone.lower() == 'nan': continue
+                
+                clean = clean_phone(raw_phone)
+                
+                # Check duplication
+                exists = db.query(Contact.id).filter(Contact.phone_e164 == clean).first()
+                if exists:
+                    stats["ignored"] += 1
+                    continue
+                
+                # Create
+                name = str(row[col_name]) if col_name and pd.notna(row[col_name]) else "Lead Importado"
+                email = str(row[col_email]) if col_email and pd.notna(row[col_email]) else None
+                
+                new_contact = Contact(full_name=name, phone_e164=clean, email=email, source="drag_drop_import", type="lead")
+                db.add(new_contact)
+                db.flush() # get ID
+                
+                pipeline = LeadPipeline(contact_id=new_contact.id, stage="novo", temperature="frio")
+                db.add(pipeline)
+                
+                stats["added"] += 1
+                
+            except Exception as e:
+                stats["errors"].append(f"Linha {idx+2}: {str(e)}")
+        
+        db.commit()
+        return stats
+
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail=f"Erro no processamento: {str(e)}")
 
 @router.get("/", response_model=List[ContactSchema])
 def list_leads(

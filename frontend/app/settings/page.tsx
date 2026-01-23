@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Link from 'next/link';
-import { Save, Server, Bot, Database, Lock, RefreshCw, Trash2, Shield, Clock, Zap, Activity, Settings as SettingsIcon, ArrowLeft } from "lucide-react";
+import { Save, Server, Bot, Database, Lock, RefreshCw, Trash2, Shield, Clock, Zap, Activity, Settings as SettingsIcon, ArrowLeft, UploadCloud, CheckCircle, AlertTriangle, FileSpreadsheet, X } from "lucide-react";
 
 export default function SettingsPage() {
     // Estado para AI Config
@@ -31,6 +31,56 @@ export default function SettingsPage() {
     });
 
     const [syncing, setSyncing] = useState(false);
+
+    // Upload & Drag Drop States
+    const [uploading, setUploading] = useState(false);
+    const [uploadStats, setUploadStats] = useState<any>(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    const handleFileUpload = async (file: File) => {
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        setUploading(true);
+        try {
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+            const res = await fetch(`${API_URL}/api/v1/leads/import_file`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                setUploadStats(data);
+            } else {
+                alert("Erro no upload: " + (data.detail || "Erro desconhecido"));
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Erro de conexão ao enviar arquivo.");
+        } finally {
+            setUploading(false);
+            setIsDragging(false);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+        }
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const file = e.dataTransfer.files[0];
+            if (file.type.includes("csv") || file.type.includes("sheet") || file.name.endsWith(".xlsx") || file.name.endsWith(".xls")) {
+                handleFileUpload(file);
+            } else {
+                alert("Por favor, envie apenas arquivos CSV ou Excel (.xlsx)");
+            }
+        }
+    };
 
     const handleSync = async () => {
         if (!confirm("Deseja sincronizar com a planilha de leads padrão?")) return;
@@ -301,15 +351,100 @@ export default function SettingsPage() {
 
                     <div className="flex flex-col gap-4 relative z-10">
                         <div className="p-4 bg-neutral-950 border border-neutral-800 rounded-xl">
-                            <h3 className="font-bold text-white mb-2">Importação e Sincronização</h3>
-                            <p className="text-sm text-neutral-400 mb-4">Sincronize os leads a partir da planilha <code>Leads_clinica.xlsx</code>.</p>
-                            <button
-                                onClick={handleSync}
-                                disabled={syncing}
-                                className="bg-neutral-800 hover:bg-neutral-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition border border-neutral-700 hover:border-neutral-500 disabled:opacity-50">
-                                <RefreshCw size={16} className={syncing ? "animate-spin" : ""} />
-                                {syncing ? 'Sincronizando...' : 'Sincronizar Agora'}
-                            </button>
+                            <h3 className="font-bold text-white mb-4 flex items-center gap-2">
+                                <FileSpreadsheet size={16} className="text-purple-500" />
+                                Importar Leads
+                            </h3>
+
+                            {/* Drag & Drop Area */}
+                            {!uploadStats ? (
+                                <div
+                                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                                    onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
+                                    onDrop={handleDrop}
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center transition-all cursor-pointer group
+                                        ${isDragging
+                                            ? 'border-purple-500 bg-purple-900/20 scale-[1.02]'
+                                            : 'border-neutral-800 bg-neutral-900/50 hover:bg-neutral-900 hover:border-neutral-700'}`}
+                                >
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        className="hidden"
+                                        accept=".xlsx,.xls,.csv"
+                                        onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
+                                    />
+
+                                    {uploading ? (
+                                        <div className="flex flex-col items-center animate-pulse">
+                                            <RefreshCw size={48} className="text-purple-500 animate-spin mb-4" />
+                                            <p className="text-neutral-400 font-medium">Processando arquivo...</p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <UploadCloud size={48} className={`mb-4 transition-colors ${isDragging ? 'text-purple-400' : 'text-neutral-600 group-hover:text-purple-500'}`} />
+                                            <p className="text-sm text-neutral-300 font-medium text-center">
+                                                Arraste sua planilha aqui
+                                                <span className="block text-neutral-500 text-xs mt-1 font-normal">ou clique para selecionar (.xlsx, .csv)</span>
+                                            </p>
+                                        </>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 animate-in fade-in zoom-in">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <h4 className="font-bold text-white flex items-center gap-2">
+                                            <CheckCircle size={18} className="text-green-500" />
+                                            Importação Concluída
+                                        </h4>
+                                        <button onClick={() => setUploadStats(null)} className="text-neutral-500 hover:text-white">
+                                            <X size={16} />
+                                        </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-3 gap-2 mb-4">
+                                        <div className="bg-green-900/20 border border-green-900/50 p-2 rounded-lg text-center">
+                                            <div className="text-lg font-bold text-green-400">{uploadStats.added}</div>
+                                            <div className="text-[10px] uppercase text-green-600 font-bold">Adicionados</div>
+                                        </div>
+                                        <div className="bg-neutral-800 p-2 rounded-lg text-center border border-neutral-700">
+                                            <div className="text-lg font-bold text-neutral-400">{uploadStats.ignored}</div>
+                                            <div className="text-[10px] uppercase text-neutral-500 font-bold">Duplicados</div>
+                                        </div>
+                                        <div className="bg-red-900/20 border border-red-900/50 p-2 rounded-lg text-center">
+                                            <div className="text-lg font-bold text-red-400">{uploadStats.errors.length}</div>
+                                            <div className="text-[10px] uppercase text-red-600 font-bold">Erros</div>
+                                        </div>
+                                    </div>
+
+                                    {uploadStats.errors.length > 0 && (
+                                        <div className="bg-neutral-950 p-2 rounded border border-neutral-800 max-h-32 overflow-y-auto text-xs font-mono text-red-400">
+                                            {uploadStats.errors.map((e: string, i: number) => <div key={i}>{e}</div>)}
+                                        </div>
+                                    )}
+
+                                    <button
+                                        onClick={() => setUploadStats(null)}
+                                        className="w-full mt-2 bg-neutral-800 hover:bg-neutral-700 text-white py-2 rounded-lg text-xs font-bold transition">
+                                        Nova Importação
+                                    </button>
+                                </div>
+                            )}
+
+                            <div className="mt-4 pt-4 border-t border-neutral-800 flex flex-col gap-2">
+                                <p className="text-[10px] text-neutral-500 flex items-center gap-1">
+                                    <AlertTriangle size={10} />
+                                    Colunas necessárias: <b>Nome</b>, <b>Telefone</b>.
+                                </p>
+                                <button
+                                    onClick={handleSync}
+                                    disabled={syncing}
+                                    className="text-xs text-neutral-500 hover:text-purple-400 flex items-center gap-1 self-start transition">
+                                    <RefreshCw size={10} className={syncing ? "animate-spin" : ""} />
+                                    {syncing ? 'Sincronizando pasta padrão...' : 'Sincronizar da pasta padrão (Server)'}
+                                </button>
+                            </div>
                         </div>
 
                         <div className="p-4 bg-red-950/20 border border-red-900/50 rounded-xl">
