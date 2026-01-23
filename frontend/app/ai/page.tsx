@@ -54,17 +54,15 @@ export default function AIConfigPage() {
             {/* Header */}
             <header className="h-16 border-b border-neutral-800 flex items-center justify-between px-6 bg-[#0A0A0A]">
                 <div className="flex items-center gap-4">
-                    <Link href="/pipeline" className="p-2 hover:bg-neutral-800 rounded-lg transition-colors text-neutral-400 hover:text-white">
+                    <Link href="/" className="p-2 hover:bg-neutral-800 rounded-lg transition-colors text-neutral-500 hover:text-white">
                         <ArrowLeft size={20} />
                     </Link>
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center text-green-500">
-                            <Bot size={18} />
-                        </div>
-                        <div>
-                            <h1 className="font-semibold text-lg leading-tight">Inteligência Artificial</h1>
-                            <p className="text-xs text-neutral-500">Configure o comportamento do seu Bot</p>
-                        </div>
+                    <div className="w-10 h-10 bg-green-900/30 rounded-lg flex items-center justify-center border border-green-500/30 text-green-500">
+                        <Bot size={22} />
+                    </div>
+                    <div>
+                        <h1 className="text-xl font-bold text-white leading-tight">Inteligência Artificial</h1>
+                        <p className="text-xs text-neutral-500 font-medium">Configure o comportamento do seu Bot</p>
                     </div>
                 </div>
 

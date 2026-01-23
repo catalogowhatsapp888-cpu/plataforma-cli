@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Users, Flame, Zap, RefreshCcw, Send, CheckSquare, MessageCircle } from "lucide-react";
+import { Users, Flame, Zap, RefreshCcw, Send, CheckSquare, MessageCircle, LayoutDashboard } from "lucide-react";
 import MessageModal from './MessageModal';
 
 export default function DashboardClient() {
@@ -61,11 +61,16 @@ export default function DashboardClient() {
         <div className="p-8 h-full overflow-y-auto scrollbar-thin scrollbar-thumb-neutral-800">
             {/* Header com Ações */}
             <div className="flex justify-between items-end mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
-                        Dashboard
-                    </h1>
-                    <p className="text-neutral-400">Visão geral do sistema</p>
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-purple-900/30 rounded-xl flex items-center justify-center border border-purple-500/30 text-purple-400">
+                        <LayoutDashboard size={28} />
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-bold text-white leading-tight">
+                            Dashboard
+                        </h1>
+                        <p className="text-neutral-500 text-sm">Visão geral do sistema</p>
+                    </div>
                 </div>
 
                 {selectedLeads.length > 0 && (

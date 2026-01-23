@@ -1,7 +1,8 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Save, Server, Bot, Database, Lock, RefreshCw, Trash2, Shield, Clock, Zap, Activity } from "lucide-react";
+import Link from 'next/link';
+import { Save, Server, Bot, Database, Lock, RefreshCw, Trash2, Shield, Clock, Zap, Activity, Settings as SettingsIcon, ArrowLeft } from "lucide-react";
 
 export default function SettingsPage() {
     // Estado para AI Config
@@ -104,10 +105,18 @@ export default function SettingsPage() {
 
     return (
         <div className="p-8 pb-20 overflow-y-auto h-screen scrollbar-thin scrollbar-thumb-neutral-800">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent mb-2">
-                Configurações
-            </h1>
-            <p className="text-neutral-400 mb-8">Gerencie as integrações e parâmetros do sistema.</p>
+            <header className="flex items-center gap-4 mb-8 pb-4 border-b border-neutral-800">
+                <Link href="/" className="p-2 hover:bg-neutral-800 rounded-lg transition-colors text-neutral-500 hover:text-white">
+                    <ArrowLeft size={20} />
+                </Link>
+                <div className="w-10 h-10 bg-neutral-800 rounded-lg flex items-center justify-center border border-neutral-700 text-neutral-100">
+                    <SettingsIcon size={22} />
+                </div>
+                <div>
+                    <h1 className="text-xl font-bold text-white leading-tight">Configurações</h1>
+                    <p className="text-xs text-neutral-500 font-medium">Gerencie integrações e parâmetros</p>
+                </div>
+            </header>
 
             <div className="space-y-6 max-w-4xl">
                 {/* Evolution API Section */}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { Search, Filter, Plus, User, MessageCircle, Edit2, X, Image as ImageIcon, Save, ExternalLink, Megaphone, Bot, RefreshCw, Trash2 } from "lucide-react";
+import { Search, Filter, Plus, User, MessageCircle, Edit2, X, Image as ImageIcon, Save, ExternalLink, Megaphone, Bot, RefreshCw, Trash2, ArrowLeft, LayoutList } from "lucide-react";
 import Link from 'next/link';
 import MessageModal from '../../components/MessageModal';
 
@@ -19,10 +19,6 @@ interface Lead {
 }
 
 const STAGES = ['novo', 'contactado', 'agendado'];
-
-
-
-
 
 export default function PipelinePage() {
     const [leads, setLeads] = useState<Lead[]>([]);
@@ -124,7 +120,6 @@ export default function PipelinePage() {
             setLeads([newLead, ...leads]);
             closeModal();
         } catch (e: any) {
-            // Se o backend retornar erro detalhado, mostre-o.
             let msg = "Erro desconhecido.";
             if (e.message) msg = e.message;
             alert(`Falha: ${msg}`);
@@ -241,31 +236,42 @@ export default function PipelinePage() {
     return (
         <div className="min-h-screen bg-neutral-900 text-white p-6 font-sans overflow-hidden flex flex-col">
 
-            {/* HEADER */}
-            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">Pipeline de Vendas</h1>
-                    <a href="/" className="text-neutral-400 hover:text-white text-sm">Voltar ao Dashboard</a>
+            {/* HEADER PADRÃO */}
+            <header className="flex flex-col md:flex-row justify-between items-center mb-8 pb-4 border-b border-neutral-800 gap-4">
+
+                {/* Lado Esquerdo: Identidade */}
+                <div className="flex items-center gap-4 w-full md:w-auto">
+                    <Link href="/" className="p-2 hover:bg-neutral-800 rounded-lg transition-colors text-neutral-500 hover:text-white">
+                        <ArrowLeft size={20} />
+                    </Link>
+                    <div className="w-10 h-10 bg-purple-900/30 rounded-lg flex items-center justify-center border border-purple-500/30 text-purple-400">
+                        <LayoutList size={22} />
+                    </div>
+                    <div>
+                        <h1 className="text-xl font-bold text-white leading-tight">Pipeline de Vendas</h1>
+                        <p className="text-xs text-neutral-500 font-medium">Gestão visual do funil</p>
+                    </div>
                 </div>
 
-                <div className="flex gap-3 items-center bg-neutral-800 p-2 rounded-xl border border-neutral-700 shadow-lg">
+                {/* Lado Direito: Toolbar */}
+                <div className="flex gap-3 items-center bg-neutral-800 p-2 rounded-xl border border-neutral-700 shadow-lg w-full md:w-auto overflow-x-auto">
                     <div className="flex items-center gap-2 bg-neutral-900 px-3 py-2 rounded-lg border border-neutral-700 focus-within:border-purple-500 transition">
                         <Search size={14} className="text-neutral-500" />
                         <input
                             type="text"
                             placeholder="Buscar..."
-                            className="bg-transparent text-sm w-40 outline-none"
+                            className="bg-transparent text-sm w-32 outline-none placeholder-neutral-600"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
 
                     <select
-                        className="bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm outline-none cursor-pointer hover:border-purple-500 transition"
+                        className="bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm outline-none cursor-pointer hover:border-purple-500 transition text-neutral-300"
                         value={filterTemp}
                         onChange={(e) => setFilterTemp(e.target.value)}
                     >
-                        <option value="all">Todas Temperaturas</option>
+                        <option value="all">Todas Temps</option>
                         <option value="quente">🔥 Quentes</option>
                         <option value="morno">☁️ Mornos</option>
                         <option value="frio">❄️ Frios</option>
@@ -274,11 +280,11 @@ export default function PipelinePage() {
 
                     <button
                         onClick={openCreateModal}
-                        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition shadow-lg shadow-purple-900/20">
+                        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition shadow-lg shadow-purple-900/20 whitespace-nowrap">
                         <Plus size={16} /> Novo Lead
                     </button>
                 </div>
-            </div>
+            </header>
 
             {/* BOARD (Drag & Drop) */}
             <div className="flex-1 overflow-hidden">
