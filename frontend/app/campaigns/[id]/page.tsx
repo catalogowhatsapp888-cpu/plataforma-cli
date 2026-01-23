@@ -359,6 +359,8 @@ export default function EditCampaignPage() {
                         <label className="block text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Nome da Campanha</label>
                         <input
                             type="text"
+                            autoComplete="off"
+                            name="campaign_name_edit"
                             value={name}
                             onChange={e => setName(e.target.value)}
                             placeholder="Ex: Recuperação de Inativos - Jan/26"
@@ -394,7 +396,10 @@ export default function EditCampaignPage() {
                                         <select
                                             className="w-full bg-transparent text-sm text-neutral-300 focus:outline-none"
                                             value={cond.field}
-                                            onChange={e => updateCondition(cond.id, 'field', e.target.value)}
+                                            onChange={e => {
+                                                updateCondition(cond.id, 'field', e.target.value);
+                                                updateCondition(cond.id, 'value', '');
+                                            }}
                                         >
                                             <option value="temperature">Temperatura</option>
                                             <option value="stage">Estágio do Funil</option>
@@ -443,6 +448,8 @@ export default function EditCampaignPage() {
                                         ) : (
                                             <input
                                                 type="text"
+                                                autoComplete="off"
+                                                name={`cond-value-${cond.id}`}
                                                 className="w-full bg-transparent text-sm text-white font-medium focus:outline-none placeholder-neutral-600"
                                                 placeholder="Valor..."
                                                 value={cond.value}

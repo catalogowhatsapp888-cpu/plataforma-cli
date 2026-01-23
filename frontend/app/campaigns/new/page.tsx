@@ -292,7 +292,11 @@ export default function NewCampaignPage() {
                                         <select
                                             className="w-full bg-transparent text-sm text-neutral-300 focus:outline-none"
                                             value={cond.field}
-                                            onChange={e => updateCondition(cond.id, 'field', e.target.value)}
+                                            onChange={e => {
+                                                // Reset value on field change to prevent type mismatch
+                                                updateCondition(cond.id, 'field', e.target.value);
+                                                updateCondition(cond.id, 'value', '');
+                                            }}
                                         >
                                             <option value="temperature">Temperatura</option>
                                             <option value="stage">Estágio do Funil</option>
@@ -342,6 +346,8 @@ export default function NewCampaignPage() {
                                         ) : (
                                             <input
                                                 type="text"
+                                                autoComplete="off"
+                                                name={`cond-value-${cond.id}`} // Unique name to prevent heuristic filling
                                                 className="w-full bg-transparent text-sm text-white font-medium focus:outline-none placeholder-neutral-600"
                                                 placeholder="Valor..."
                                                 value={cond.value}
