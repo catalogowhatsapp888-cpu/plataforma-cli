@@ -8,6 +8,10 @@ __pycache__/
 *.db
 .env
 V1.2 Estavel/
+V1.3 Estavel/
+V1.4 Estavel/
+backend/dados_entrada/
+tmp/
 backend.log
 frontend.log
 ngrok.log

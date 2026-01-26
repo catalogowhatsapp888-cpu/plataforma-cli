@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, Plus, Trash2, Users, RefreshCw, Save, Image as ImageIcon, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import api from '../../../services/api';
 
 // Tipos
 interface Condition {
@@ -50,13 +51,9 @@ export default function NewCampaignPage() {
                 }
             };
 
-            const res = await fetch('http://localhost:8000/api/v1/campaigns/preview', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            const res = await api.post('/campaigns/preview', payload);
 
-            const data = await res.json();
+            const data = res.data;
             setPreview(data);
             // Resetar exclusões ao mudar a regra (opcional, mas seguro)
             setExcludedIds([]);
@@ -166,18 +163,16 @@ export default function NewCampaignPage() {
                 audience_rules: finalRules
             };
 
-            const res = await fetch('http://localhost:8000/api/v1/campaigns/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            if (res.ok) {
+            const res = await api.post('/campaigns', payload);
+
+            if (res.status === 200 || res.status === 201) {
                 router.push('/campaigns');
             } else {
                 alert('Erro ao salvar');
             }
-        } catch (e) {
-            alert('Erro de conexão');
+        } catch (e: any) {
+            const msg = e.response?.data?.detail || "Erro de conexão";
+            alert("Erro ao salvar: " + msg);
         } finally {
             setSaving(false);
         }
@@ -252,6 +247,9 @@ export default function NewCampaignPage() {
                             )}
 
                             <div className="flex justify-between items-center mt-2 pt-2 border-t border-neutral-800">
+                                <span className="text-[10px] text-neutral-500 font-mono">
+                                    Use: <span className="text-purple-400">{`{nome}`}</span>, <span className="text-purple-400">{`{nome_completo}`}</span>, <span className="text-purple-400">{`{telefone}`}</span>
+                                </span>
                                 <div className="flex items-center gap-2">
                                     <label className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border border-dashed border-neutral-700 cursor-pointer transition ${mediaUrl ? 'bg-green-900/10 border-green-500/30 text-green-400' : 'hover:bg-neutral-800 hover:border-neutral-500 text-neutral-400'}`}>
                                         <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} disabled={uploading} />
@@ -259,7 +257,6 @@ export default function NewCampaignPage() {
                                         <span className="text-xs font-medium">{mediaUrl ? 'Trocar Imagem' : 'Adicionar Imagem'}</span>
                                     </label>
                                 </div>
-                                <span className="text-[10px] bg-green-900/40 text-green-400 px-2 py-0.5 rounded border border-green-900/50">WhatsApp Preview</span>
                             </div>
                         </div>
                     </div>
@@ -389,7 +386,6 @@ export default function NewCampaignPage() {
                         </div>
                     ) : preview ? (
                         <div className="w-full max-w-sm z-10 h-[80vh] flex flex-col">
-                            {/* Summary Card */}
                             {/* Summary Card */}
                             <div className="text-center mb-6 shrink-0">
                                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-500/10 border border-purple-500/30 mb-2 shadow-[0_0_30px_rgba(168,85,247,0.2)]">

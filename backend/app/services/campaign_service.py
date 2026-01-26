@@ -194,10 +194,20 @@ class CampaignService:
 
             logging.info(f"🚀 [DISPARO SEGURO] {lead.full_name} (Typing: {typing_ms}ms)")
             
-            if campaign.message_template or campaign.media_url:
+            # Personalização da Mensagem (Variáveis)
+            final_text = campaign.message_template or ""
+            if final_text and lead.full_name:
+                first_name = lead.full_name.split()[0].title() if lead.full_name else ""
+                final_text = final_text.replace("{nome}", first_name) \
+                                       .replace("{primeiro_nome}", first_name) \
+                                       .replace("{nome_completo}", lead.full_name) \
+                                       .replace("{telefone}", lead.phone_e164 or "") \
+                                       .replace("{email}", lead.email or "")
+
+            if final_text or campaign.media_url:
                 evolution_service.send_message(
                     phone=lead.phone_e164,
-                    text=campaign.message_template,
+                    text=final_text,
                     media_url=campaign.media_url,
                     delay=typing_ms
                 )

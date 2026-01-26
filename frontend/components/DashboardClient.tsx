@@ -15,8 +15,8 @@ export default function DashboardClient() {
         setLoading(true);
         try {
             const [resLeads, resStats] = await Promise.all([
-                axios.get('http://127.0.0.1:8000/api/v1/leads/?limit=2000'),
-                axios.get('http://127.0.0.1:8000/api/v1/leads/dashboard/stats')
+                axios.get('/api/v1/leads/?limit=2000'),
+                axios.get('/api/v1/leads/dashboard/stats')
             ]);
 
             // Ordenar por Data de Criação (Desc) se tiver campo created_at

@@ -1,11 +1,19 @@
 "use client";
-import React from 'react';
-import { usePathname } from 'next/navigation';
+import React, { useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import Sidebar from './Sidebar';
+import { authService } from '../services/auth';
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const router = useRouter();
     const isLoginPage = pathname === '/login';
+
+    useEffect(() => {
+        if (!isLoginPage && !authService.isAuthenticated()) {
+            router.push('/login');
+        }
+    }, [pathname, isLoginPage, router]);
 
     return (
         <div className="min-h-screen bg-neutral-950 text-white flex">

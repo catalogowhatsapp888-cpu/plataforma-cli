@@ -1,7 +1,8 @@
 "use client";
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lock } from 'lucide-react';
+import { authService } from '../../services/auth';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -9,15 +10,26 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Senha Hardcoded MVP (Simulação)
-        if (email === 'eduschefer@icloud.com' && password === '123456') {
-            // Set cookie seguro
-            document.cookie = "auth_token=admin_session; path=/; max-age=86400; SameSite=Lax; Secure";
-            router.push('/');
-        } else {
-            alert("Credenciais inválidas (Dev: admin@clinica.com / 123456)");
+        setLoading(true);
+        console.log("Tentando login com:", email);
+        try {
+            await authService.login(email, password);
+            console.log("Login sucesso. Redirecionando...");
+            // Força recarregamento para garantir estado limpo do app
+            window.location.href = '/';
+        } catch (error: any) {
+            console.error("Login Error:", error);
+            let msg = "Erro desconhecido";
+            if (error.response?.data?.detail) {
+                const detail = error.response.data.detail;
+                if (typeof detail === 'string') msg = detail;
+                else msg = JSON.stringify(detail);
+            }
+            alert("Falha no login: " + msg);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -37,6 +49,8 @@ export default function LoginPage() {
                         <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider">E-mail</label>
                         <input
                             type="email"
+                            name="email"
+                            autoComplete="email"
                             className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white mt-1 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition"
                             value={email}
                             onChange={e => setEmail(e.target.value)}
@@ -47,6 +61,8 @@ export default function LoginPage() {
                         <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Senha</label>
                         <input
                             type="password"
+                            name="password"
+                            autoComplete="current-password"
                             className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-3 text-white mt-1 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition"
                             value={password}
                             onChange={e => setPassword(e.target.value)}

@@ -1,6 +1,6 @@
 'use client';
-
 import { useState, useEffect } from 'react';
+import api from '../../services/api';
 import { Plus, Megaphone, Users, Calendar, ArrowRight, ArrowLeft, Clock, Play, Loader2, Trash2, Edit3 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -22,13 +22,16 @@ export default function CampaignsPage() {
     const [loading, setLoading] = useState(true);
     const [executingId, setExecutingId] = useState<string | null>(null);
 
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
     useEffect(() => {
-        fetch(`${API_URL}/api/v1/campaigns/`)
-            .then(res => res.json())
-            .then(data => {
-                setCampaigns(data);
+        api.get('/campaigns')
+            .then(res => {
+                // Ensure it is an array
+                if (Array.isArray(res.data)) {
+                    setCampaigns(res.data);
+                } else {
+                    console.error("Expected array but got:", res.data);
+                    setCampaigns([]);
+                }
                 setLoading(false);
             })
             .catch(err => {
@@ -40,14 +43,10 @@ export default function CampaignsPage() {
     const handleDelete = async (id: string, name: string) => {
         if (!confirm(`Tem certeza que deseja apagar a campanha "${name}"?`)) return;
         try {
-            const res = await fetch(`${API_URL}/api/v1/campaigns/${id}`, { method: 'DELETE' });
-            if (res.ok) {
-                setCampaigns(prev => prev.filter(c => c.id !== id));
-            } else {
-                alert("Erro ao apagar campanha");
-            }
+            await api.delete(`/campaigns/${id}`);
+            setCampaigns(prev => prev.filter(c => c.id !== id));
         } catch (e) {
-            alert("Erro de conexão");
+            alert("Erro ao apagar campanha");
         }
     }
 
@@ -58,18 +57,15 @@ export default function CampaignsPage() {
 
         setExecutingId(id);
         try {
-            const res = await fetch(`${API_URL}/api/v1/campaigns/${id}/execute?force=${force}`, { method: 'POST' });
-            const data = await res.json();
+            const res = await api.post(`/campaigns/${id}/execute?force=${force}`);
+            const data = res.data;
 
-            if (res.ok) {
-                alert(`✅ Campanha disparada com sucesso!\n\nAudiência Total: ${data.total_audience}\nEnviados Agora: ${data.sent_now}\nJá Enviados Antes: ${data.already_sent}`);
-                // Atualizar status localmente
-                setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status: 'active' } : c));
-            } else {
-                alert("Erro ao disparar: " + (data.detail || JSON.stringify(data)));
-            }
-        } catch (e) {
-            alert("Erro de conexão com o servidor.");
+            alert(`✅ Campanha disparada com sucesso!\n\nAudiência Total: ${data.total_audience}\nEnviados Agora: ${data.sent_now}\nJá Enviados Antes: ${data.already_sent}`);
+            // Atualizar status localmente
+            setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status: 'active' } : c));
+        } catch (e: any) {
+            const msg = e.response?.data?.detail || "Erro de conexão";
+            alert("Erro ao disparar: " + msg);
         } finally {
             setExecutingId(null);
         }
@@ -100,9 +96,6 @@ export default function CampaignsPage() {
             {/* Header Padrão */}
             <header className="flex items-center justify-between mb-8 pb-4 border-b border-neutral-800 gap-4">
                 <div className="flex items-center gap-4">
-                    <Link href="/" className="p-2 hover:bg-neutral-800 rounded-lg transition-colors text-neutral-500 hover:text-white">
-                        <ArrowLeft size={20} />
-                    </Link>
                     <div className="w-10 h-10 bg-purple-900/30 rounded-lg flex items-center justify-center border border-purple-500/30 text-purple-400">
                         <Megaphone size={22} />
                     </div>

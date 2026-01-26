@@ -25,14 +25,37 @@ class AIService:
             "Content-Type": "application/json"
         }
         
-        # INJECT RULES
-        system_prompt_enhanced = system_prompt + """
+        # RAG: BUSCA DE CONHECIMENTO
+        rag_context = ""
+        last_user_msg = next((m['content'] for m in reversed(history) if m.get('role') == 'user'), None)
+        
+        if last_user_msg and db and contact_id:
+            try:
+                # Resolve tenant_id from contact
+                from app.models.models import Contact
+                contact = db.query(Contact).filter(Contact.id == contact_id).first()
+                if contact and contact.tenant_id:
+                    from app.services.knowledge_service import knowledge_service
+                    # Busca chunks relevantes
+                    results = knowledge_service.search(db, last_user_msg, contact.tenant_id, limit=3, threshold=0.4)
+                    
+                    if results:
+                        rag_context = "\n\n### BASE DE CONHECIMENTO (Use estas informações para responder):\n"
+                        for item in results:
+                            rag_context += f"- (Fonte: {item['document_title']}): {item['chunk_text'][:500]}...\n"
+                        rag_context += "\n### FIM DO CONHECIMENTO\n"
+                        logging.info(f"🧠 RAG: Inserindo {len(results)} chunks no contexto.")
+            except Exception as e:
+                logging.error(f"RAG Error: {e}")
+
+        # INJECT RULES & CONTEXT
+        system_prompt_enhanced = system_prompt + rag_context + """
         
 [SISTEMA - REGRAS OCULTAS]:
 1. Se o usuário informar o nome dele, use a ferramenta 'update_contact_name'.
 2. Se o usuário quiser AGENDAR, falar com ATENDENTE/HUMANO ou se você não souber responder algo complexo, use a ferramenta 'transfer_to_human'. Ao usar essa ferramenta, avise o cliente que você está transferindo (ex: 'Vou transferir para nossa atendente humana').
 """
-
+        
         messages = [{"role": "system", "content": system_prompt_enhanced}]
         
         for msg in history:

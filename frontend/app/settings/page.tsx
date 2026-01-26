@@ -2,14 +2,15 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Link from 'next/link';
-import { Save, Server, Bot, Database, Lock, RefreshCw, Trash2, Shield, Clock, Zap, Activity, Settings as SettingsIcon, ArrowLeft, UploadCloud, CheckCircle, AlertTriangle, FileSpreadsheet, X } from "lucide-react";
+import { Save, Server, Bot, Database, Lock, RefreshCw, Trash2, Shield, Clock, Zap, Activity, Settings as SettingsIcon, ArrowLeft, UploadCloud, CheckCircle, AlertTriangle, FileSpreadsheet, X, Brain } from "lucide-react";
 
 export default function SettingsPage() {
     // Estado para AI Config
     const [aiConfig, setAiConfig] = useState({
         is_active: false,
         system_prompt: '',
-        model_name: 'gpt-4o'
+        model_name: 'gpt-4o',
+        whitelist_numbers: [] as string[]
     });
 
     // Estado Mock para Evolution (futuro: ler do backend)
@@ -37,6 +38,47 @@ export default function SettingsPage() {
     const [uploadStats, setUploadStats] = useState<any>(null);
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    // Knowledge Base State
+    const [documents, setDocuments] = useState<any[]>([]);
+    const [docUploading, setDocUploading] = useState(false);
+    const docInputRef = React.useRef<HTMLInputElement>(null);
+
+    const fetchDocuments = async () => {
+        try {
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+            const res = await axios.get(`${API_URL}/api/v1/knowledge/`);
+            setDocuments(res.data);
+        } catch (e) { console.error(e); }
+    };
+
+    useEffect(() => { fetchDocuments(); }, []);
+
+    const handleDocUpload = async (file: File) => {
+        if (!file) return;
+        setDocUploading(true);
+        const formData = new FormData();
+        formData.append("file", file);
+        try {
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+            await axios.post(`${API_URL}/api/v1/knowledge/upload`, formData);
+            fetchDocuments();
+            alert("Documento enviado para processamento!");
+        } catch (e: any) {
+            alert("Erro no upload: " + e);
+        } finally {
+            setDocUploading(false);
+        }
+    }
+
+    const handleDocDelete = async (id: string) => {
+        if (!confirm("Remover este documento e desaprender o conteúdo?")) return;
+        try {
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+            await axios.delete(`${API_URL}/api/v1/knowledge/${id}`);
+            fetchDocuments();
+        } catch (e) { alert("Erro ao deletar"); }
+    }
 
     const handleFileUpload = async (file: File) => {
         if (!file) return;
@@ -266,6 +308,46 @@ export default function SettingsPage() {
                     </div>
                 </div>
 
+                {/* Knowledge Base (RAG) Section */}
+                <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-5">
+                        <Brain size={120} />
+                    </div>
+                    <h2 className="text-xl font-bold mb-6 flex items-center gap-2 relative z-10">
+                        <span className="w-8 h-8 rounded-lg bg-pink-900/50 text-pink-500 flex items-center justify-center border border-pink-800"><Brain size={18} /></span>
+                        Base de Conhecimento (Cérebro)
+                    </h2>
+                    <div className="relative z-10">
+                        <div
+                            onClick={() => docInputRef.current?.click()}
+                            className="border-2 border-dashed border-neutral-800 hover:border-pink-500/50 hover:bg-neutral-900/80 transition-all rounded-xl p-6 text-center cursor-pointer mb-6"
+                        >
+                            <input type="file" ref={docInputRef} className="hidden" accept=".pdf" onChange={e => e.target.files?.[0] && handleDocUpload(e.target.files[0])} />
+                            {docUploading ? <RefreshCw className="animate-spin mx-auto text-pink-500" /> : <UploadCloud className="mx-auto text-neutral-500 mb-2" size={32} />}
+                            <p className="text-sm text-neutral-400 font-bold">Clique para adicionar PDF</p>
+                            <p className="text-xs text-neutral-600">Manuais, Tabelas de Preço, FAQ</p>
+                        </div>
+
+                        <div className="space-y-2">
+                            {documents.map(doc => (
+                                <div key={doc.id} className="flex items-center justify-between bg-neutral-950 p-3 rounded-lg border border-neutral-800">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-8 h-8 rounded flex items-center justify-center ${doc.is_processed ? 'bg-green-900/20 text-green-500' : 'bg-yellow-900/20 text-yellow-500'}`}>
+                                            {doc.is_processed ? <CheckCircle size={16} /> : <RefreshCw size={16} className="animate-spin" />}
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-white truncate max-w-[200px]">{doc.title}</p>
+                                            <p className="text-[10px] text-neutral-500">{new Date(doc.created_at).toLocaleDateString()}</p>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => handleDocDelete(doc.id)} className="text-neutral-600 hover:text-red-500 transition"><Trash2 size={16} /></button>
+                                </div>
+                            ))}
+                            {documents.length === 0 && <p className="text-center text-xs text-neutral-600 py-4">Nenhum documento treinado.</p>}
+                        </div>
+                    </div>
+                </div>
+
                 {/* Campaign Safety Section */}
                 <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-2xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-4 opacity-5">
@@ -336,6 +418,83 @@ export default function SettingsPage() {
                             className="bg-orange-600 hover:bg-orange-500 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 transition hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-orange-900/20">
                             <Save size={18} /> Salvar Regras
                         </button>
+                    </div>
+
+
+                </div>
+
+                {/* Homologation & Testing Section */}
+                <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-5">
+                        <Zap size={120} />
+                    </div>
+                    <div className="flex justify-between items-start mb-6 relative z-10">
+                        <h2 className="text-xl font-bold flex items-center gap-2">
+                            <span className="w-8 h-8 rounded-lg bg-blue-900/50 text-blue-500 flex items-center justify-center border border-blue-800"><Zap size={18} /></span>
+                            Homologação & Testes
+                        </h2>
+                    </div>
+
+                    <div className="space-y-6 relative z-10">
+                        {/* Whitelist */}
+                        <div className="bg-neutral-950 p-4 rounded-xl border border-neutral-800">
+                            <div className="flex justify-between items-start mb-2">
+                                <label className="text-sm font-bold text-neutral-400">Modo de Segurança (Whitelist)</label>
+                            </div>
+                            <p className="text-xs text-neutral-500 mb-3">
+                                Defina números "seguros". Se houver números aqui, o sistema pode priorizá-los ou limitar o envio APENAS para eles (dependendo da lógica do bot).
+                                Útil para aquecer o chip enviando mensagens entre sua equipe.
+                            </p>
+                            <textarea
+                                value={aiConfig.whitelist_numbers?.join('\n') || ''}
+                                onChange={e => {
+                                    const val = e.target.value;
+                                    const arr = val.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+                                    setAiConfig({ ...aiConfig, whitelist_numbers: arr });
+                                }}
+                                rows={3}
+                                className="w-full bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-sm text-white font-mono placeholder-neutral-700 focus:border-blue-500 outline-none"
+                                placeholder="5511999999999&#10;5511888888888"
+                            />
+                            <div className="mt-2 text-right">
+                                <button
+                                    onClick={handleSaveAI}
+                                    className="text-xs text-blue-400 hover:text-blue-300 font-bold"
+                                >
+                                    Salvar Lista Segura
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Test Message Sender */}
+                        <div className="bg-neutral-950 p-4 rounded-xl border border-neutral-800">
+                            <label className="text-sm font-bold text-neutral-400 mb-3 block">Disparo de Teste (Aquecimento)</label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    placeholder="5511999999999"
+                                    id="test-phone"
+                                    className="flex-1 bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-white outline-none focus:border-blue-500 font-mono"
+                                />
+                                <button
+                                    onClick={async () => {
+                                        const phone = (document.getElementById('test-phone') as HTMLInputElement).value;
+                                        if (!phone) return alert("Digite um número");
+                                        try {
+                                            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+                                            await axios.post(`${API_URL}/api/v1/settings/test-message`, { phone, message: "Olá! Este é um teste de aquecimento do sistema. 🚀" });
+                                            alert("Mensagem enviada com sucesso!");
+                                        } catch (e) {
+                                            alert("Erro ao enviar: " + e);
+                                        }
+                                    }}
+                                    className="bg-blue-600 hover:bg-blue-500 text-white px-4 rounded-lg font-medium transition-colors"
+                                >
+                                    Enviar Teste
+                                </button>
+                            </div>
+                            <p className="text-[10px] text-neutral-600 mt-2">Envia uma mensagem padrão ("Olá! Este é um teste...") para verificar a entrega.</p>
+                        </div>
                     </div>
                 </div>
 

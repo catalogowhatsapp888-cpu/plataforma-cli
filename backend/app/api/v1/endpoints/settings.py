@@ -46,3 +46,21 @@ def update_campaign_settings(payload: CampaignSettings, db: Session = Depends(ge
     db.commit()
     db.refresh(settings)
     return settings
+
+from app.services.evolution_service import evolution_service
+
+class TestMessageRequest(BaseModel):
+    phone: str
+    message: str
+
+@router.post("/test-message")
+def send_test_message(req: TestMessageRequest, db: Session = Depends(get_db)):
+    """Envia uma mensagem de teste para verificar a conexão com o WhatsApp."""
+    try:
+        result = evolution_service.send_message(
+            phone=req.phone,
+            text=req.message
+        )
+        return {"success": True, "result": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

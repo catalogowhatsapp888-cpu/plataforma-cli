@@ -2,13 +2,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, KanbanSquare, Megaphone, Bot, Calendar, Settings, LogOut, Upload, Image as ImageIcon } from 'lucide-react';
+import { LayoutDashboard, KanbanSquare, Megaphone, Bot, Calendar, Settings, LogOut, Upload, Shield, Image as ImageIcon, Building } from 'lucide-react';
+import { authService } from '../services/auth';
 
 const menuItems = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
     { name: 'Pipeline', href: '/pipeline', icon: KanbanSquare },
     { name: 'Campanhas', href: '/campaigns', icon: Megaphone },
-    { name: 'Inteligência IA', href: '/ai', icon: Bot },
     { name: 'Agenda', href: '/agenda', icon: Calendar },
 ];
 
@@ -16,19 +16,21 @@ export default function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
     const [customLogo, setCustomLogo] = useState<string | null>(null);
+    const [isAdmin, setIsAdmin] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Carregar logo do localStorage ao iniciar
     useEffect(() => {
         const savedLogo = localStorage.getItem('clinic_logo');
         if (savedLogo) setCustomLogo(savedLogo);
+
+        // Verifica se é admin para mostrar menu
+        const role = authService.getUserRole();
+        setIsAdmin(role === 'admin');
     }, []);
 
     const handleLogout = () => {
-        // Para deletar cookie secure, é preciso passar os mesmos atributos (exceto max-age=0)
-        document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax; Secure";
-        // Fallback pra localhost (sem secure)
-        document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        authService.logout();
         router.push('/login');
     };
 
@@ -91,15 +93,12 @@ export default function Sidebar() {
                         <img src={customLogo} alt="Logo Clínica" className="w-full h-full object-contain" />
                     </div>
                 ) : (
-                    <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center font-bold text-white shadow-lg shadow-purple-900/20 group-hover:scale-105 transition-transform">
-                            PC
-                        </div>
-                        <div>
-                            <h1 className="text-lg font-bold bg-gradient-to-r from-white to-neutral-400 bg-clip-text text-transparent leading-tight">
-                                Clinica AI
-                            </h1>
-                        </div>
+                    <div className="w-full h-auto max-h-[120px] flex items-center justify-center p-2">
+                        <img
+                            src="/logo_superserver.png"
+                            alt="SuperServer Logo"
+                            className="w-full h-full object-contain max-h-[80px]"
+                        />
                     </div>
                 )}
 
@@ -132,6 +131,37 @@ export default function Sidebar() {
             </nav>
 
             <div className="p-4 border-t border-neutral-800 space-y-2">
+                {/* Menu Admin - Visível apenas para ADMIN */}
+                {isAdmin && (
+                    <div className="mb-2">
+                        <p className="px-4 text-[10px] font-bold text-neutral-600 uppercase tracking-wider mb-2">Administração</p>
+                        <Link
+                            href="/admin/company"
+                            className={`flex items-center gap-3 px-4 py-2 rounded-xl transition-all duration-200 group mb-1
+                                ${pathname === '/admin/company'
+                                    ? 'bg-amber-600/10 text-amber-400 border border-amber-600/20'
+                                    : 'text-neutral-400 hover:bg-neutral-900 hover:text-neutral-200 border border-transparent'
+                                }
+                            `}
+                        >
+                            <Building size={18} className={pathname === '/admin/company' ? 'text-amber-400' : 'text-neutral-500 group-hover:text-amber-400'} />
+                            <span className="font-medium text-sm">Dados da Empresa</span>
+                        </Link>
+                        <Link
+                            href="/admin/users"
+                            className={`flex items-center gap-3 px-4 py-2 rounded-xl transition-all duration-200 group
+                                ${pathname === '/admin/users'
+                                    ? 'bg-amber-600/10 text-amber-400 border border-amber-600/20'
+                                    : 'text-neutral-400 hover:bg-neutral-900 hover:text-neutral-200 border border-transparent'
+                                }
+                            `}
+                        >
+                            <Shield size={18} className={pathname === '/admin/users' ? 'text-amber-400' : 'text-neutral-500 group-hover:text-amber-400'} />
+                            <span className="font-medium text-sm">Usuários e Acesso</span>
+                        </Link>
+                    </div>
+                )}
+
                 <Link
                     href="/settings"
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors border border-transparent
@@ -154,10 +184,10 @@ export default function Sidebar() {
 
             {/* User Profile Mini */}
             <div className="p-4 bg-neutral-900/50 mx-4 mb-4 rounded-xl border border-neutral-800 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center text-xs">AD</div>
+                <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center text-xs">U</div>
                 <div className="overflow-hidden">
-                    <p className="text-xs font-bold text-white truncate">Admin</p>
-                    <p className="text-[10px] text-neutral-500 truncate">admin@clinica.com</p>
+                    <p className="text-xs font-bold text-white truncate">{isAdmin ? 'Admin' : 'Usuário'}</p>
+                    <p className="text-[10px] text-neutral-500 truncate">Logado no Superserver</p>
                 </div>
             </div>
         </aside>

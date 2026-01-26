@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.schemas.campaign import CampaignPreviewRequest, CampaignPreviewResponse, CampaignCreate, CampaignSchema, ContactSample, CampaignUpdate
 from app.services.campaign_service import campaign_service
-from app.models.models import Campaign, Contact, CampaignEvent, LeadPipeline
+from app.models.models import Campaign, Contact, CampaignEvent, LeadPipeline, User
+from app.api import deps
 from sqlalchemy import func
 import time
 import uuid
@@ -46,12 +47,17 @@ def preview_audience(request: CampaignPreviewRequest, db: Session = Depends(get_
         "query_time_ms": elapsed
     }
 
-@router.post("/", response_model=CampaignSchema)
-def create_campaign(campaign_in: CampaignCreate, db: Session = Depends(get_db)):
+@router.post("", response_model=CampaignSchema)
+def create_campaign(
+    campaign_in: CampaignCreate, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user)
+):
     # Serializa regras para o banco (Pydantic -> Dict -> JSON Column)
     rules_dump = campaign_in.audience_rules.model_dump()
     
     new_campaign = Campaign(
+        tenant_id=current_user.tenant_id,
         name=campaign_in.name,
         audience_rules=rules_dump,
         message_template=campaign_in.message_template,
@@ -66,9 +72,16 @@ def create_campaign(campaign_in: CampaignCreate, db: Session = Depends(get_db)):
     db.refresh(new_campaign)
     return new_campaign
 
-@router.get("/", response_model=list[CampaignSchema])
-def list_campaigns(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    campaigns = db.query(Campaign).order_by(Campaign.created_at.desc()).offset(skip).limit(limit).all()
+@router.get("", response_model=list[CampaignSchema])
+def list_campaigns(
+    skip: int = 0, 
+    limit: int = 100, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user)
+):
+    campaigns = db.query(Campaign).filter(
+        Campaign.tenant_id == current_user.tenant_id
+    ).order_by(Campaign.created_at.desc()).offset(skip).limit(limit).all()
     return campaigns
 
 @router.post("/{campaign_id}/execute")
