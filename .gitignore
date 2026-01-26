@@ -18,3 +18,4 @@ ngrok.log
 clinica.db
 launch.json
 .vscode/
+evolution_config.json

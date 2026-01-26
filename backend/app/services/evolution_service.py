@@ -2,13 +2,50 @@ import requests
 from typing import Dict, Any, Optional
 from app.core.config import settings
 
+import os
+import json
+
+CONFIG_FILE = "evolution_config.json"
+
 class EvolutionService:
     def __init__(self):
+        self.load_config()
+
+    def load_config(self):
+        # Default from ENV
         self.base_url = settings.EVOLUTION_API_URL
         self.api_key = settings.EVOLUTION_API_KEY
         self.instance = settings.EVOLUTION_INSTANCE_NAME
+        
+        # Override from File if exists
+        if os.path.exists(CONFIG_FILE):
+            try:
+                with open(CONFIG_FILE, 'r') as f:
+                    data = json.load(f)
+                    if data.get('url'): self.base_url = data['url']
+                    if data.get('apikey'): self.api_key = data['apikey']
+                    if data.get('instance'): self.instance = data['instance']
+            except Exception as e:
+                print(f"⚠️ Erro ao ler evolution_config.json: {e}")
+
+    def update_config(self, url: str, apikey: str, instance: str):
+        self.base_url = url
+        self.api_key = apikey
+        self.instance = instance
+        
+        # Persist
+        with open(CONFIG_FILE, 'w') as f:
+            json.dump({
+                "url": url,
+                "apikey": apikey,
+                "instance": instance
+            }, f)
 
     def _get_headers(self) -> Dict[str, str]:
+        if not self.api_key:
+            # Tenta recarregar caso tenha mudado
+            self.load_config()
+            
         if not self.api_key:
             raise ValueError("Evolution API Key not configured")
         return {

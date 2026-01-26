@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
-import { Plus, Megaphone, Users, Calendar, ArrowRight, ArrowLeft, Clock, Play, Loader2, Trash2, Edit3 } from 'lucide-react';
+import { Plus, Megaphone, Users, Calendar, ArrowRight, ArrowLeft, Clock, Play, Loader2, Trash2, Edit3, Copy } from 'lucide-react';
 import Link from 'next/link';
 
 interface Campaign {
@@ -68,6 +68,17 @@ export default function CampaignsPage() {
             alert("Erro ao disparar: " + msg);
         } finally {
             setExecutingId(null);
+        }
+    };
+
+    const handleClone = async (id: string) => {
+        try {
+            const res = await api.post(`/campaigns/${id}/clone`);
+            const newId = res.data.id;
+            // Redirect to Edit
+            window.location.href = `/campaigns/new?id=${newId}`;
+        } catch (e) {
+            alert("Erro ao clonar campanha");
         }
     };
 
@@ -183,11 +194,25 @@ export default function CampaignsPage() {
                                             {new Date(campaign.created_at).toLocaleDateString()}
                                         </span>
                                         <div className="flex gap-2">
-                                            <Link href={`/campaigns/${campaign.id}`}>
-                                                <button className="w-9 h-9 rounded-lg text-neutral-400 hover:bg-neutral-800 hover:text-white flex items-center justify-center transition-all bg-neutral-800/50" title="Editar">
-                                                    <Edit3 size={16} />
-                                                </button>
-                                            </Link>
+                                            {/* Edit Button */}
+                                            {campaign.status === 'draft' && (
+                                                <Link href={`/campaigns/new?id=${campaign.id}`}>
+                                                    <button className="w-9 h-9 rounded-lg text-neutral-400 hover:bg-neutral-800 hover:text-white flex items-center justify-center transition-all bg-neutral-800/50" title="Editar">
+                                                        <Edit3 size={16} />
+                                                    </button>
+                                                </Link>
+                                            )}
+
+                                            {/* Clone Button */}
+                                            <button
+                                                onClick={() => handleClone(campaign.id)}
+                                                className="w-9 h-9 rounded-lg text-neutral-400 hover:bg-neutral-800 hover:text-white flex items-center justify-center transition-all bg-neutral-800/50"
+                                                title="Duplicar"
+                                            >
+                                                <Copy size={16} />
+                                            </button>
+
+                                            {/* Delete Button */}
                                             <button
                                                 onClick={() => handleDelete(campaign.id, campaign.name)}
                                                 className="w-9 h-9 rounded-lg text-neutral-400 hover:bg-red-900/20 hover:text-red-500 flex items-center justify-center transition-all bg-neutral-800/50"

@@ -72,6 +72,7 @@ class Contact(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     last_interaction_at = Column(DateTime(timezone=True))
     opt_in = Column(Boolean, default=False)
+    is_opt_out = Column(Boolean, default=False)     # ⛔ Stop / Sair
     is_active = Column(Boolean, default=True)
 
     # Relationships

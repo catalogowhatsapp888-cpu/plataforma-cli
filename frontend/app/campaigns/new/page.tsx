@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, Plus, Trash2, Users, RefreshCw, Save, Image as ImageIcon, X } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import api from '../../../services/api';
+import { Suspense } from 'react';
 
 // Tipos
 interface Condition {
@@ -22,7 +23,19 @@ interface PreviewData {
 }
 
 export default function NewCampaignPage() {
+    return (
+        <Suspense fallback={<div className="p-8 text-neutral-500">Carregando...</div>}>
+            <CampaignForm />
+        </Suspense>
+    )
+}
+
+function CampaignForm() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const editId = searchParams.get('id');
+    const isClone = searchParams.get('clone') === 'true'; // Se for clone flow direto (opcional)
+
     const [name, setName] = useState('');
     const [message, setMessage] = useState('');
     const [mediaUrl, setMediaUrl] = useState(''); // Estado para Imagem (Base64)
@@ -39,6 +52,54 @@ export default function NewCampaignPage() {
     const [excludedIds, setExcludedIds] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+
+    // Load Existing Config if Edit Mode
+    useEffect(() => {
+        if (!editId) return;
+        const loadCampaign = async () => {
+            try {
+                const res = await api.get(`/campaigns/${editId}`);
+                const data = res.data;
+                setName(data.name);
+                setMessage(data.message_template || '');
+                setMediaUrl(data.media_url || '');
+                setExcludedIds(data.excluded_contacts || []);
+
+                if (data.audience_rules) {
+                    const rules = typeof data.audience_rules === 'string' ? JSON.parse(data.audience_rules) : data.audience_rules;
+                    setLogic(rules.logic || 'AND');
+                    if (rules.conditions) {
+                        setConditions(rules.conditions.map((c: any) => ({
+                            id: Math.random().toString(),
+                            field: c.field,
+                            operator: c.operator,
+                            value: c.value
+                        })));
+
+                        // Check Selection Mode
+                        if (rules.conditions.length === 1 && rules.conditions[0].field === 'id' && rules.conditions[0].operator === 'in') {
+                            setSelectionMode('manual');
+                            setSelectedIds(rules.conditions[0].value || []);
+                            // Reset conditions to default UI state
+                            setConditions([{ id: Math.random().toString(), field: 'temperature', operator: 'equals', value: 'quente' }]);
+                        } else {
+                            setSelectionMode('all'); // Rules mode
+                            setConditions(rules.conditions.map((c: any) => ({
+                                id: Math.random().toString(),
+                                field: c.field,
+                                operator: c.operator,
+                                value: c.value
+                            })));
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Erro ao carregar campanha", e);
+                alert("Erro ao carregar dados da campanha.");
+            }
+        };
+        loadCampaign();
+    }, [editId]);
 
     // Debounce Logic
     const fetchPreview = useCallback(async () => {
@@ -163,7 +224,12 @@ export default function NewCampaignPage() {
                 audience_rules: finalRules
             };
 
-            const res = await api.post('/campaigns', payload);
+            let res;
+            if (editId) {
+                res = await api.put(`/campaigns/${editId}`, payload);
+            } else {
+                res = await api.post('/campaigns', payload);
+            }
 
             if (res.status === 200 || res.status === 201) {
                 router.push('/campaigns');
@@ -187,7 +253,7 @@ export default function NewCampaignPage() {
                         <ArrowLeft size={20} />
                     </Link>
                     <div>
-                        <h1 className="font-semibold text-lg leading-tight">Nova Campanha</h1>
+                        <h1 className="font-semibold text-lg leading-tight">{editId ? 'Editar Campanha' : 'Nova Campanha'}</h1>
                         <p className="text-xs text-neutral-500">Defina o público alvo e a mensagem</p>
                     </div>
                 </div>
@@ -280,97 +346,118 @@ export default function NewCampaignPage() {
                         </div>
                     </div>
 
-                    <div className="space-y-3 mb-8">
-                        {conditions.map((cond, idx) => (
-                            <div key={cond.id} className="flex gap-2 items-start group">
-                                <div className="flex-1 bg-neutral-900/50 border border-neutral-800 rounded-xl p-3 grid grid-cols-12 gap-3 hover:border-neutral-700 transition-colors">
-                                    {/* Campo */}
-                                    <div className="col-span-4">
-                                        <select
-                                            className="w-full bg-transparent text-sm text-neutral-300 focus:outline-none"
-                                            value={cond.field}
-                                            onChange={e => {
-                                                // Reset value on field change to prevent type mismatch
-                                                updateCondition(cond.id, 'field', e.target.value);
-                                                updateCondition(cond.id, 'value', '');
-                                            }}
-                                        >
-                                            <option value="temperature">Temperatura</option>
-                                            <option value="stage">Estágio do Funil</option>
-                                            <option value="full_name">Nome</option>
-                                        </select>
-                                    </div>
-
-                                    {/* Operador */}
-                                    <div className="col-span-3 border-l border-neutral-800 pl-3">
-                                        <select
-                                            className="w-full bg-transparent text-sm text-neutral-400 focus:outline-none"
-                                            value={cond.operator}
-                                            onChange={e => updateCondition(cond.id, 'operator', e.target.value)}
-                                        >
-                                            <option value="equals">É Igual a</option>
-                                            <option value="not_equals">Diferente de</option>
-                                            <option value="contains">Contém</option>
-                                        </select>
-                                    </div>
-
-                                    {/* Valor */}
-                                    <div className="col-span-5 border-l border-neutral-800 pl-3">
-                                        {cond.field === 'temperature' ? (
-                                            <select
-                                                className="w-full bg-transparent text-sm text-white font-medium focus:outline-none"
-                                                value={cond.value}
-                                                onChange={e => updateCondition(cond.id, 'value', e.target.value)}
-                                            >
-                                                <option value="">Selecione...</option>
-                                                <option value="frio">❄️ Frio</option>
-                                                <option value="morno">☁️ Morno</option>
-                                                <option value="quente">🔥 Quente</option>
-                                            </select>
-                                        ) : cond.field.includes('stage') ? (
-                                            <select
-                                                className="w-full bg-transparent text-sm text-white font-medium focus:outline-none"
-                                                value={cond.value}
-                                                onChange={e => updateCondition(cond.id, 'value', e.target.value)}
-                                            >
-                                                <option value="">Selecione...</option>
-                                                <option value="novo">Novo</option>
-                                                <option value="nao_lido">🔴 Responder</option>
-                                                <option value="contactado">Contactado</option>
-                                                <option value="agendado">Agendado</option>
-                                                <option value="perdido">Perdido</option>
-                                            </select>
-                                        ) : (
-                                            <input
-                                                type="text"
-                                                autoComplete="off"
-                                                name={`cond-value-${cond.id}`} // Unique name to prevent heuristic filling
-                                                className="w-full bg-transparent text-sm text-white font-medium focus:outline-none placeholder-neutral-600"
-                                                placeholder="Valor..."
-                                                value={cond.value}
-                                                onChange={e => updateCondition(cond.id, 'value', e.target.value)}
-                                            />
-                                        )}
-                                    </div>
-                                </div>
-
-                                <button
-                                    onClick={() => removeCondition(cond.id)}
-                                    className="p-3 text-neutral-600 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-colors opacity-0 group-hover:opacity-100"
-                                >
-                                    <Trash2 size={18} />
-                                </button>
+                    {selectionMode === 'manual' ? (
+                        <div className="mb-8 p-6 bg-neutral-900 border border-neutral-800 rounded-xl text-center dashed-border">
+                            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-purple-500/10 text-purple-400 mb-3">
+                                <Users size={20} />
                             </div>
-                        ))}
-                    </div>
+                            <h3 className="text-white font-medium mb-1">Seleção Manual Ativa</h3>
+                            <p className="text-sm text-neutral-500 mb-4">
+                                Você está selecionando contatos individualmente ({selectedIds.length} selecionados).
+                            </p>
+                            <button
+                                onClick={() => setSelectionMode('all')}
+                                className="text-xs text-neutral-400 hover:text-white underline"
+                            >
+                                Cancelar e usar Regras Automáticas
+                            </button>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="space-y-3 mb-8">
+                                {conditions.map((cond, idx) => (
+                                    <div key={cond.id} className="flex gap-2 items-start group">
+                                        <div className="flex-1 bg-neutral-900/50 border border-neutral-800 rounded-xl p-3 grid grid-cols-12 gap-3 hover:border-neutral-700 transition-colors">
+                                            {/* Campo */}
+                                            <div className="col-span-4">
+                                                <select
+                                                    className="w-full bg-transparent text-sm text-neutral-300 focus:outline-none"
+                                                    value={cond.field}
+                                                    onChange={e => {
+                                                        // Reset value on field change to prevent type mismatch
+                                                        updateCondition(cond.id, 'field', e.target.value);
+                                                        updateCondition(cond.id, 'value', '');
+                                                    }}
+                                                >
+                                                    <option value="temperature">Temperatura</option>
+                                                    <option value="stage">Estágio do Funil</option>
+                                                    <option value="full_name">Nome</option>
+                                                </select>
+                                            </div>
 
-                    <button
-                        onClick={addCondition}
-                        className="w-full py-3 border border-dashed border-neutral-800 rounded-xl text-neutral-500 text-sm font-medium hover:border-neutral-600 hover:text-neutral-300 transition-all flex items-center justify-center gap-2"
-                    >
-                        <Plus size={16} />
-                        Adicionar Condição
-                    </button>
+                                            {/* Operador */}
+                                            <div className="col-span-3 border-l border-neutral-800 pl-3">
+                                                <select
+                                                    className="w-full bg-transparent text-sm text-neutral-400 focus:outline-none"
+                                                    value={cond.operator}
+                                                    onChange={e => updateCondition(cond.id, 'operator', e.target.value)}
+                                                >
+                                                    <option value="equals">É Igual a</option>
+                                                    <option value="not_equals">Diferente de</option>
+                                                    <option value="contains">Contém</option>
+                                                </select>
+                                            </div>
+
+                                            {/* Valor */}
+                                            <div className="col-span-5 border-l border-neutral-800 pl-3">
+                                                {cond.field === 'temperature' ? (
+                                                    <select
+                                                        className="w-full bg-transparent text-sm text-white font-medium focus:outline-none"
+                                                        value={cond.value}
+                                                        onChange={e => updateCondition(cond.id, 'value', e.target.value)}
+                                                    >
+                                                        <option value="">Selecione...</option>
+                                                        <option value="frio">❄️ Frio</option>
+                                                        <option value="morno">☁️ Morno</option>
+                                                        <option value="quente">🔥 Quente</option>
+                                                    </select>
+                                                ) : cond.field.includes('stage') ? (
+                                                    <select
+                                                        className="w-full bg-transparent text-sm text-white font-medium focus:outline-none"
+                                                        value={cond.value}
+                                                        onChange={e => updateCondition(cond.id, 'value', e.target.value)}
+                                                    >
+                                                        <option value="">Selecione...</option>
+                                                        <option value="novo">Novo</option>
+                                                        <option value="nao_lido">🔴 Responder</option>
+                                                        <option value="contactado">Contactado</option>
+                                                        <option value="agendado">Agendado</option>
+                                                        <option value="perdido">Perdido</option>
+                                                        <option value="bloqueado">⛔ Bloqueado</option>
+                                                    </select>
+                                                ) : (
+                                                    <input
+                                                        type="text"
+                                                        autoComplete="off"
+                                                        name={`cond-value-${cond.id}`} // Unique name to prevent heuristic filling
+                                                        className="w-full bg-transparent text-sm text-white font-medium focus:outline-none placeholder-neutral-600"
+                                                        placeholder="Valor..."
+                                                        value={cond.value}
+                                                        onChange={e => updateCondition(cond.id, 'value', e.target.value)}
+                                                    />
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            onClick={() => removeCondition(cond.id)}
+                                            className="p-3 text-neutral-600 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-colors opacity-0 group-hover:opacity-100"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <button
+                                onClick={addCondition}
+                                className="w-full py-3 border border-dashed border-neutral-800 rounded-xl text-neutral-500 text-sm font-medium hover:border-neutral-600 hover:text-neutral-300 transition-all flex items-center justify-center gap-2"
+                            >
+                                <Plus size={16} />
+                                Adicionar Condição
+                            </button>
+                        </>
+                    )}
 
                 </div>
 
@@ -467,7 +554,6 @@ export default function NewCampaignPage() {
         </div>
     );
 }
-
 // Icon Helper
 function CheckSquareIcon({ className }: { className?: string }) {
     return (

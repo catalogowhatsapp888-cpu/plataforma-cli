@@ -181,6 +181,14 @@ class CampaignService:
                 db.commit()
                 return
 
+            # Check Opt-out (Anti-Ban)
+            if lead.is_opt_out:
+                logging.info(f"🚫 [SKIP] {lead.full_name} is marked as OPT-OUT/STOP.")
+                pending.status = 'skipped_optout'
+                # Remove do pipeline também? Não, já foi feito no webhook.
+                db.commit()
+                return
+
             # Calcular Delay de Digitação (Typing Simulation)
             full_text = campaign.message_template or ""
             # Regra: ~60ms por caractere

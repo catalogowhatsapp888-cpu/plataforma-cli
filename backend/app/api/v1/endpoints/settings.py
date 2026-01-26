@@ -47,6 +47,36 @@ def update_campaign_settings(payload: CampaignSettings, db: Session = Depends(ge
     db.refresh(settings)
     return settings
 
+from app.core.security import verify_password
+from app.api import deps
+from app.models.models import User
+
+class EvolutionConfig(BaseModel):
+    url: str
+    apikey: str
+    instance: str
+    admin_password: str
+
+@router.get("/evolution", response_model=dict)
+def get_evolution_config(current_user: User = Depends(deps.get_current_user)):
+    # Return current in-memory config
+    return {
+        "url": evolution_service.base_url,
+        "apikey": evolution_service.api_key,
+        "instance": evolution_service.instance
+    }
+
+@router.put("/evolution")
+def update_evolution_config(payload: EvolutionConfig, current_user: User = Depends(deps.get_current_user), db: Session = Depends(get_db)):
+    # 1. Verify Password
+    if not verify_password(payload.admin_password, current_user.hashed_password):
+        raise HTTPException(status_code=403, detail="Senha incorreta.")
+    
+    # 2. Update Service & Persist
+    evolution_service.update_config(payload.url, payload.apikey, payload.instance)
+    
+    return {"status": "updated", "message": "Configuração da Evolution atualizada com sucesso!"}
+
 from app.services.evolution_service import evolution_service
 
 class TestMessageRequest(BaseModel):

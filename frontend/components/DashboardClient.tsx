@@ -6,10 +6,13 @@ import MessageModal from './MessageModal';
 
 export default function DashboardClient() {
     const [leads, setLeads] = useState<any[]>([]);
-    const [stats, setStats] = useState({ total_leads: 0, novos: 0, quentes: 0 });
+    const [stats, setStats] = useState<any>({ total_leads: 0, novos: 0, quentes: 0, stages: {} });
     const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
     const [chatLead, setChatLead] = useState<any>(null);
+    const [filterStage, setFilterStage] = useState<string | null>(null);
+
+    const filteredLeads = leads.filter(l => !filterStage || l.lead_pipeline?.stage === filterStage);
 
     const fetchData = async () => {
         setLoading(true);
@@ -129,6 +132,40 @@ export default function DashboardClient() {
                     </button>
                 </div>
 
+                {/* Filters */}
+                <div className="px-6 py-4 flex gap-2 overflow-x-auto scrollbar-hide border-b border-neutral-800 bg-neutral-900/30">
+                    <button
+                        onClick={() => setFilterStage(null)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition whitespace-nowrap
+                        ${!filterStage ? 'bg-white text-black border-white' : 'bg-transparent text-neutral-500 border-neutral-800 hover:border-neutral-600'}`}
+                    >
+                        TODOS
+                    </button>
+                    {['novo', 'contactado', 'respondeu', 'agendado', 'vendido', 'perdido', 'bloqueado'].map(stage => {
+                        const count = stats.stages?.[stage] || 0;
+                        const active = filterStage === stage;
+                        let colorClass = "border-neutral-800 text-neutral-500 hover:text-white";
+                        if (active) {
+                            if (stage === 'novo') colorClass = "bg-blue-900/50 border-blue-500 text-blue-400";
+                            else if (stage === 'agendado') colorClass = "bg-purple-900/50 border-purple-500 text-purple-400";
+                            else if (stage === 'vendido') colorClass = "bg-green-900/50 border-green-500 text-green-400";
+                            else if (stage === 'perdido') colorClass = "bg-red-900/50 border-red-500 text-red-400";
+                            else if (stage === 'bloqueado') colorClass = "bg-neutral-950 border-neutral-700 text-neutral-500 line-through decoration-red-500";
+                            else colorClass = "bg-neutral-800 border-neutral-600 text-white";
+                        }
+                        return (
+                            <button
+                                key={stage}
+                                onClick={() => setFilterStage(active ? null : stage)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition uppercase whitespace-nowrap flex items-center gap-2 ${colorClass}`}
+                            >
+                                {stage}
+                                <span className="bg-black/20 px-1.5 rounded text-[10px]">{count}</span>
+                            </button>
+                        )
+                    })}
+                </div>
+
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead className="bg-neutral-950 text-neutral-400 text-xs uppercase tracking-wider font-semibold border-b border-neutral-800">
@@ -149,7 +186,7 @@ export default function DashboardClient() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-800">
-                            {leads.map((lead: any) => (
+                            {filteredLeads.map((lead: any) => (
                                 <tr key={lead.id} className={`group transition-colors ${selectedLeads.includes(lead.id) ? 'bg-purple-900/10' : 'hover:bg-neutral-800/50'}`}>
                                     <td className="px-6 py-4 text-center">
                                         <input
@@ -201,9 +238,9 @@ export default function DashboardClient() {
                         </tbody>
                     </table>
                 </div>
-                {leads.length === 0 && !loading && (
+                {filteredLeads.length === 0 && !loading && (
                     <div className="p-12 text-center text-neutral-500">
-                        Nenhum lead encontrado.
+                        {leads.length > 0 ? 'Nenhum lead com este filtro.' : 'Nenhum lead encontrado.'}
                     </div>
                 )}
 

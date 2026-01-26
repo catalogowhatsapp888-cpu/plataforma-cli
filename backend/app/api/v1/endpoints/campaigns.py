@@ -145,7 +145,35 @@ def delete_campaign(campaign_id: str, db: Session = Depends(get_db)):
         
     db.delete(camp)
     db.commit()
+    db.delete(camp)
+    db.commit()
     return {"status": "deleted"}
+
+@router.post("/{campaign_id}/clone", response_model=CampaignSchema)
+def clone_campaign(campaign_id: str, db: Session = Depends(get_db), current_user: User = Depends(deps.get_current_user)):
+    try:
+        cid = uuid.UUID(str(campaign_id))
+    except:
+        raise HTTPException(status_code=400, detail="ID inválido")
+    
+    original = db.query(Campaign).filter(Campaign.id == cid).first()
+    if not original:
+        raise HTTPException(status_code=404, detail="Campanha não encontrada")
+        
+    new_camp = Campaign(
+        tenant_id=original.tenant_id,
+        name=f"Cópia de {original.name}",
+        audience_rules=original.audience_rules,
+        message_template=original.message_template,
+        media_url=original.media_url,
+        excluded_contacts=original.excluded_contacts,
+        status='draft'
+    )
+    
+    db.add(new_camp)
+    db.commit()
+    db.refresh(new_camp)
+    return new_camp
 
 @router.get("/{campaign_id}/stats")
 def get_campaign_stats(campaign_id: str, db: Session = Depends(get_db)):

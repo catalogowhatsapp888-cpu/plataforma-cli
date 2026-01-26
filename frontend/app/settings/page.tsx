@@ -14,11 +14,17 @@ export default function SettingsPage() {
     });
 
     // Estado Mock para Evolution (futuro: ler do backend)
-    const [evolutionConfig] = useState({
-        url: 'https://evolution.superserver.com.br',
-        apikey: '••••••••••••••••••••••••••••••••',
-        instance: 'agenciaia_ecle'
+    // Evolution Config State
+    const [evolutionConfig, setEvolutionConfig] = useState({
+        url: '',
+        apikey: '',
+        instance: ''
     });
+
+    // Password Modal State
+    const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+    const [adminPassword, setAdminPassword] = useState('');
+    const [savingEvolution, setSavingEvolution] = useState(false);
 
     // Config de Disparos Seguros
     const [campaignConfig, setCampaignConfig] = useState({
@@ -173,6 +179,11 @@ export default function SettingsPage() {
         axios.get('http://127.0.0.1:8000/api/v1/settings/campaign')
             .then(res => { if (res.data.id) setCampaignConfig(res.data); })
             .catch(err => console.error("Sem config campanha (usando defaults)", err));
+
+        // Carregar Evolution Config
+        axios.get('http://127.0.0.1:8000/api/v1/settings/evolution')
+            .then(res => setEvolutionConfig(res.data))
+            .catch(err => console.error("Erro ao carregar Evolution config", err));
     }, []);
 
     const handleSaveAI = async () => {
@@ -192,6 +203,26 @@ export default function SettingsPage() {
         } catch (e) {
             alert("Erro ao salvar limites.");
             console.error(e);
+        }
+    };
+
+    const handleOpenEvolutionModal = () => setIsPasswordModalOpen(true);
+
+    const handleConfirmEvolutionSave = async () => {
+        setSavingEvolution(true);
+        try {
+            await axios.put('http://127.0.0.1:8000/api/v1/settings/evolution', {
+                ...evolutionConfig,
+                admin_password: adminPassword
+            });
+            alert("Configuração Evolution salva com sucesso!");
+            setIsPasswordModalOpen(false);
+            setAdminPassword('');
+        } catch (e: any) {
+            const msg = e.response?.data?.detail || "Erro desconhecido";
+            alert("Erro ao salvar: " + msg);
+        } finally {
+            setSavingEvolution(false);
         }
     };
 
@@ -224,26 +255,41 @@ export default function SettingsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
                         <div>
                             <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">API URL</label>
-                            <div className="flex items-center bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-3 text-neutral-400">
-                                <span className="flex-1 truncate">{evolutionConfig.url}</span>
-                                <Lock size={14} className="text-neutral-600" />
-                            </div>
+                            <input
+                                type="text"
+                                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg p-3 text-white focus:border-green-500 outline-none font-mono text-sm"
+                                value={evolutionConfig.url}
+                                onChange={e => setEvolutionConfig({ ...evolutionConfig, url: e.target.value })}
+                                placeholder="https://evolution..."
+                            />
                         </div>
                         <div>
                             <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Instância</label>
-                            <div className="flex items-center bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-3 text-neutral-400">
-                                <span className="flex-1 font-mono">{evolutionConfig.instance}</span>
-                                <Lock size={14} className="text-neutral-600" />
-                            </div>
+                            <input
+                                type="text"
+                                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg p-3 text-white focus:border-green-500 outline-none font-mono text-sm"
+                                value={evolutionConfig.instance}
+                                onChange={e => setEvolutionConfig({ ...evolutionConfig, instance: e.target.value })}
+                            />
                         </div>
                         <div className="md:col-span-2">
                             <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2 block">Global API Key</label>
-                            <div className="flex items-center bg-neutral-950 border border-neutral-800 rounded-lg px-4 py-3 text-neutral-500 font-mono">
-                                <span className="flex-1">{evolutionConfig.apikey}</span>
-                                <Lock size={14} className="text-neutral-600" />
+                            <div className="flex gap-2">
+                                <input
+                                    type="password"
+                                    className="flex-1 bg-neutral-950 border border-neutral-800 rounded-lg p-3 text-white focus:border-green-500 outline-none font-mono text-sm"
+                                    value={evolutionConfig.apikey}
+                                    onChange={e => setEvolutionConfig({ ...evolutionConfig, apikey: e.target.value })}
+                                />
+                                <button
+                                    onClick={handleOpenEvolutionModal}
+                                    className="bg-green-600 hover:bg-green-500 text-white px-6 rounded-xl font-bold transition shadow-lg shadow-green-900/20"
+                                >
+                                    <Save size={18} />
+                                </button>
                             </div>
                             <p className="text-[10px] text-yellow-600/70 mt-2 flex items-center gap-1">
-                                <Lock size={10} /> Estas configurações são gerenciadas via variáveis de ambiente (.env) por segurança.
+                                <Lock size={10} /> Alterar estes dados requer senha de administrador.
                             </p>
                         </div>
                     </div>
@@ -459,9 +505,9 @@ export default function SettingsPage() {
                             <div className="mt-2 text-right">
                                 <button
                                     onClick={handleSaveAI}
-                                    className="text-xs text-blue-400 hover:text-blue-300 font-bold"
+                                    className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-blue-900/20 text-xs ml-auto"
                                 >
-                                    Salvar Lista Segura
+                                    <Save size={16} /> Salvar Lista Segura
                                 </button>
                             </div>
                         </div>
@@ -618,6 +664,55 @@ export default function SettingsPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Password Modal */}
+            {isPasswordModalOpen && (
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                    <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-2xl w-full max-w-md shadow-2xl">
+                        <div className="flex justify-between items-start mb-4">
+                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                <Lock size={18} className="text-red-500" />
+                                Confirmação de Segurança
+                            </h3>
+                            <button onClick={() => setIsPasswordModalOpen(false)} className="text-neutral-500 hover:text-white">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <p className="text-sm text-neutral-400 mb-6">
+                            Você está alterando configurações críticas de conexão. Digite sua senha de administrador para confirmar.
+                        </p>
+
+                        <div className="mb-6">
+                            <label className="block text-xs font-bold text-neutral-500 uppercase mb-2">Sua Senha</label>
+                            <input
+                                type="password"
+                                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg p-3 text-white focus:border-red-500 outline-none"
+                                value={adminPassword}
+                                onChange={e => setAdminPassword(e.target.value)}
+                                placeholder="••••••"
+                                autoFocus
+                            />
+                        </div>
+
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={() => setIsPasswordModalOpen(false)}
+                                className="px-4 py-2 rounded-lg text-sm font-medium text-neutral-400 hover:text-white"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleConfirmEvolutionSave}
+                                disabled={!adminPassword || savingEvolution}
+                                className="bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-lg text-sm font-bold flex items-center gap-2 disabled:opacity-50 transition"
+                            >
+                                {savingEvolution ? <RefreshCw className="animate-spin" size={16} /> : <CheckCircle size={16} />}
+                                Confirmar Alteração
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

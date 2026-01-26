@@ -41,6 +41,7 @@ async def import_leads_file(file: UploadFile = File(...), db: Session = Depends(
         col_name = next((c for c in df.columns if 'nome' in c or 'name' in c), None)
         col_phone = next((c for c in df.columns if 'tel' in c or 'cel' in c or 'phone' in c or 'what' in c), None)
         col_email = next((c for c in df.columns if 'email' in c or 'mail' in c), None)
+        col_status = next((c for c in df.columns if 'status' in c or 'fase' in c or 'etapa' in c or 'class' in c), None)
 
         if not col_phone:
              return {"added": 0, "ignored": 0, "errors": ["Coluna de Telefone não encontrada (use 'Telefone', 'Celular', 'Whatsapp')"], "total": len(df)}
@@ -73,7 +74,17 @@ async def import_leads_file(file: UploadFile = File(...), db: Session = Depends(
                 db.add(new_contact)
                 db.flush() # get ID
                 
-                pipeline = LeadPipeline(contact_id=new_contact.id, stage="novo", temperature="frio")
+                # Detect Stage
+                stage = "novo"
+                if col_status and pd.notna(row[col_status]):
+                    val = str(row[col_status]).lower().strip()
+                    if 'agend' in val: stage = 'agendado'
+                    elif 'ven' in val or 'ganh' in val: stage = 'vendido'
+                    elif 'per' in val or 'off' in val or 'inativ' in val or 'desc' in val: stage = 'perdido'
+                    elif 'cont' in val: stage = 'contactado'
+                    elif 'resp' in val: stage = 'respondeu'
+                
+                pipeline = LeadPipeline(contact_id=new_contact.id, stage=stage, temperature="frio")
                 db.add(pipeline)
                 
                 stats["added"] += 1
@@ -113,14 +124,18 @@ def get_stats(db: Session = Depends(get_db)):
     """
     Retorna números totais para o Dashboard.
     """
+    # Breakdown por Stage
+    stages_query = db.query(LeadPipeline.stage, func.count(LeadPipeline.contact_id)).group_by(LeadPipeline.stage).all()
+    stage_counts = {s: c for s, c in stages_query}
+    
     total = db.query(Contact).count()
-    novos = db.query(Contact).join(LeadPipeline).filter(LeadPipeline.stage == 'novo').count()
     quentes = db.query(Contact).join(LeadPipeline).filter(LeadPipeline.temperature == 'quente').count()
     
     return {
         "total_leads": total,
-        "novos": novos,
-        "quentes": quentes
+        "novos": stage_counts.get('novo', 0),
+        "quentes": quentes,
+        "stages": stage_counts # dicionario completo: {'agendado': 10, 'perdido': 5}
     }
 
 from app.schemas.lead_update import LeadStageUpdate

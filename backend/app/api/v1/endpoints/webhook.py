@@ -118,6 +118,53 @@ async def handle_webhook(request: Request, db: Session = Depends(get_db)):
             db.add(pipeline)
         
         if not from_me: # Inbound (Cliente mandou)
+            # --- STOP/OPT-OUT Logic (Anti-Ban) ---
+            msg_upper = text_content.strip().upper() if text_content else ""
+            
+            # 1. Palavras Exatas (Comandos Curtos)
+            exact_keywords = ['SAIR', 'STOP', 'PARAR', 'CANCELAR', 'UNSUBSCRIBE']
+            
+            # 2. Frases (Intenção clara no meio do texto)
+            phrases = [
+                'NAO QUERO MAIS', 'NÃO QUERO MAIS', 
+                'PARAR DE RECEBER', 'PARAR DE ENVIAR', 
+                'ME TIRA DA LISTA', 'ME REMOVE', 
+                'REMOVER DA LISTA', 'NÃO TENHO INTERESSE', 
+                'NAO TENHO INTERESSE'
+            ]
+            
+            is_opt_out_trigger = False
+            
+            # Check Exact
+            if msg_upper in exact_keywords:
+                is_opt_out_trigger = True
+            
+            # Check Phrases
+            if not is_opt_out_trigger:
+                for ph in phrases:
+                    if ph in msg_upper:
+                        is_opt_out_trigger = True
+                        break
+            
+            if is_opt_out_trigger:
+                 print(f"⛔ Lead {contact.full_name} solicitou OPT-OUT (Trigger: {msg_upper[:20]}).")
+                 contact.is_opt_out = True
+                 # Move para Bloqueado
+                 pipeline.stage = 'bloqueado' 
+                 pipeline.temperature = 'frio'
+                 db.commit()
+                 
+                 # Send confirmation
+                 evolution_service.send_message(contact.phone_e164, "Entendido. Você foi removido da nossa lista e não receberá mais mensagens. ✅")
+                 
+                 # Save Outbound message (Confirmation)
+                 cfm_msg = Message(conversation_id=conversation.id, direction='outbound', content="[SYSTEM] Remoção confirmada (OPT-OUT).", status='sent')
+                 db.add(cfm_msg)
+                 db.commit()
+                 return {"status": "opt_out_processed"}
+            
+            # ------------------------------------
+
             # --- COMANDO DE RESET PARA TESTES ---
             if text_content and text_content.strip().lower() == '/reset':
                 print(f"🧹 RESET RECEBIDO DE {contact.full_name}. Limpando histórico...")
