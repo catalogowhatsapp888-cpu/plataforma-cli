@@ -1,16 +1,18 @@
 from typing import Optional
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel #, EmailStr
 from uuid import UUID
 from datetime import datetime
 
 class UserBase(BaseModel):
     name: Optional[str] = None
-    email: Optional[EmailStr] = None
+    # email: Optional[EmailStr] = None
+    email: Optional[str] = None
     role: Optional[str] = "vendedor"
     is_active: Optional[bool] = True
 
 class UserCreate(UserBase):
-    email: EmailStr
+    # email: EmailStr
+    email: str
     password: str
     name: str
 
