@@ -13,7 +13,8 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: (process.env.BACKEND_URL || 'http://127.0.0.1:8000') + '/api/:path*',
+        // Hardcoded para garantir conexão no Easypanel
+        destination: 'https://agenciaia-plataforma-cliente.hjqwkc.easypanel.host/api/:path*',
       },
     ];
   },
